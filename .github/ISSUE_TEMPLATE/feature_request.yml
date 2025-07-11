@@ -1,0 +1,58 @@
+name: ✨ Feature Request
+description: Suggest a new feature for Laravel Errly
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! ✨
+
+        We love hearing ideas that could make Laravel Errly better.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Describe the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why would this feature be useful? What problem does it solve?
+      placeholder: This would help because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-implementation
+    attributes:
+      label: Proposed Implementation
+      description: How should this feature work? Any API ideas?
+      placeholder: |
+        // Example API
+        Errly::configure()->notifyVia(['slack', 'discord']);
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: notification-channel
+    attributes:
+      label: Is this related to notification channels?
+      options:
+        - label: Discord support
+        - label: Microsoft Teams support
+        - label: Email support
+        - label: Webhook support
+        - label: Other notification service
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or mockups about the feature
+      placeholder: Screenshots, mockups, or examples...

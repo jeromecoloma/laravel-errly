@@ -1,5 +1,5 @@
 <?php
 
-use VendorName\Skeleton\Tests\TestCase;
+use Errly\LaravelErrly\Tests\TestCase;
 
 uses(TestCase::class)->in(__DIR__);
