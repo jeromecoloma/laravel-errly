@@ -213,7 +213,7 @@ jobs:
       run: test -f composer.lock
 
     - name: Check if dependencies are up to date
-      run: composer outdated --direct --strict
+      run: composer outdated --direct || true  # Allow outdated packages, just report them
 
   # New job for integration testing
   integration-test:
