@@ -4,7 +4,6 @@ namespace Errly\LaravelErrly\Tests\Feature;
 
 use Errly\LaravelErrly\Notifications\SlackErrorNotification;
 use Errly\LaravelErrly\Tests\TestCase;
-use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 
 class TestErrorCommandTest extends TestCase
@@ -12,16 +11,15 @@ class TestErrorCommandTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Enable Errly for testing
         config(['errly.enabled' => true]);
         config(['errly.slack.webhook_url' => 'https://hooks.slack.com/test']);
-        
+
         // Allow testing environment
         config(['errly.filters.environments.enabled' => false]);
         // Or alternatively: config(['errly.filters.environments.allowed' => ['testing']]);
     }
-
 
     public function test_it_runs_general_error_test_by_default()
     {
@@ -41,11 +39,10 @@ class TestErrorCommandTest extends TestCase
             ->assertExitCode(0);
 
         Notification::assertSentOnDemand(
-            
+
             SlackErrorNotification::class
         );
     }
-
 
     public function test_it_runs_database_error_test()
     {
@@ -65,11 +62,10 @@ class TestErrorCommandTest extends TestCase
             ->assertExitCode(0);
 
         Notification::assertSentOnDemand(
-            
+
             SlackErrorNotification::class
         );
     }
-
 
     public function test_it_runs_critical_error_test()
     {
@@ -89,11 +85,10 @@ class TestErrorCommandTest extends TestCase
             ->assertExitCode(0);
 
         Notification::assertSentOnDemand(
-            
+
             SlackErrorNotification::class
         );
     }
-
 
     public function test_it_runs_validation_error_test_and_filters_it_out()
     {
@@ -114,7 +109,6 @@ class TestErrorCommandTest extends TestCase
         Notification::assertNothingSent();
     }
 
-
     public function test_it_runs_custom_error_test()
     {
         Notification::fake();
@@ -133,11 +127,10 @@ class TestErrorCommandTest extends TestCase
             ->assertExitCode(0);
 
         Notification::assertSentOnDemand(
-            
+
             SlackErrorNotification::class
         );
     }
-
 
     public function test_it_handles_unknown_error_type()
     {
@@ -157,11 +150,10 @@ class TestErrorCommandTest extends TestCase
             ->assertExitCode(0);
 
         Notification::assertSentOnDemand(
-            
+
             SlackErrorNotification::class
         );
     }
-
 
     public function test_it_works_when_errly_is_disabled()
     {
@@ -185,7 +177,6 @@ class TestErrorCommandTest extends TestCase
         Notification::assertNothingSent();
     }
 
-
     public function test_it_works_when_webhook_url_is_missing()
     {
         config(['errly.slack.webhook_url' => null]);
@@ -208,7 +199,6 @@ class TestErrorCommandTest extends TestCase
         Notification::assertNothingSent();
     }
 
-
     public function test_it_includes_command_context_in_reported_exception()
     {
         Notification::fake();
@@ -216,23 +206,22 @@ class TestErrorCommandTest extends TestCase
         $this->artisan('errly:test', ['type' => 'custom']);
 
         Notification::assertSentOnDemand(
-            
+
             SlackErrorNotification::class,
             function ($notification) {
                 $context = $notification->getContext();
-                
+
                 // Check that command context is included
                 $this->assertEquals('errly:test', $context['command']);
                 $this->assertEquals('custom', $context['type']);
                 $this->assertEquals('console_test', $context['context']);
                 $this->assertArrayHasKey('timestamp', $context);
                 $this->assertArrayHasKey('server', $context);
-                
+
                 return true;
             }
         );
     }
-
 
     public function test_it_shows_correct_severity_levels_for_different_exception_types()
     {
@@ -253,22 +242,21 @@ class TestErrorCommandTest extends TestCase
             // Only check notifications for types that should be reported
             if ($type !== 'validation') {
                 Notification::assertSentOnDemand(
-                    
+
                     SlackErrorNotification::class,
                     function ($notification) use ($expectedSeverity) {
                         $reflection = new \ReflectionClass($notification);
                         $method = $reflection->getMethod('getSeverityLevel');
                         $method->setAccessible(true);
-                        
+
                         $actualSeverity = $method->invoke($notification);
-                        
+
                         return $actualSeverity === $expectedSeverity;
                     }
                 );
             }
         }
     }
-
 
     public function test_it_handles_rate_limiting_during_command_execution()
     {
@@ -295,7 +283,6 @@ class TestErrorCommandTest extends TestCase
         Notification::assertSentOnDemandTimes(SlackErrorNotification::class, 2);
     }
 
-
     public function test_it_respects_environment_filtering_in_command()
     {
         config(['errly.filters.environments.enabled' => true]);
@@ -311,4 +298,4 @@ class TestErrorCommandTest extends TestCase
 
         Notification::assertNothingSent();
     }
-} 
+}

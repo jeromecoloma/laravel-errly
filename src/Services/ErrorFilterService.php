@@ -8,11 +8,11 @@ class ErrorFilterService
 {
     public function shouldReport(Throwable $exception): bool
     {
-        if (!config('errly.enabled')) {
+        if (! config('errly.enabled')) {
             return false;
         }
 
-        if (!$this->isEnvironmentAllowed()) {
+        if (! $this->isEnvironmentAllowed()) {
             return false;
         }
 
@@ -37,11 +37,12 @@ class ErrorFilterService
 
     protected function isEnvironmentAllowed(): bool
     {
-        if (!config('errly.filters.environments.enabled')) {
+        if (! config('errly.filters.environments.enabled')) {
             return true;
         }
 
         $allowedEnvironments = config('errly.filters.environments.allowed', []);
+
         return in_array(app()->environment(), $allowedEnvironments);
     }
 
@@ -75,6 +76,7 @@ class ErrorFilterService
     {
         if (method_exists($exception, 'getStatusCode')) {
             $statusCode = call_user_func([$exception, 'getStatusCode']);
+
             return $statusCode >= 500;
         }
 
