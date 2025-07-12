@@ -23,18 +23,16 @@ class ConfigurationTest extends TestCase
         $this->assertEquals(2000, config('errly.context.max_stack_trace_length'));
     }
 
-
     public function test_it_loads_environment_configuration()
     {
         $this->assertEquals(true, config('errly.filters.environments.enabled')); // Default enabled
         $this->assertEquals(['production', 'staging'], config('errly.filters.environments.allowed'));
     }
 
-
     public function test_it_loads_ignored_exceptions_configuration()
     {
         $ignoredExceptions = config('errly.filters.ignored_exceptions');
-        
+
         $this->assertContains(\Illuminate\Validation\ValidationException::class, $ignoredExceptions);
         $this->assertContains(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class, $ignoredExceptions);
         $this->assertContains(\Illuminate\Auth\AuthenticationException::class, $ignoredExceptions);
@@ -42,11 +40,10 @@ class ConfigurationTest extends TestCase
         $this->assertContains(\Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException::class, $ignoredExceptions);
     }
 
-
     public function test_it_loads_critical_exceptions_configuration()
     {
         $criticalExceptions = config('errly.filters.critical_exceptions');
-        
+
         $this->assertContains(\ParseError::class, $criticalExceptions);
         $this->assertContains(\TypeError::class, $criticalExceptions);
         $this->assertContains(\Error::class, $criticalExceptions);
@@ -55,11 +52,10 @@ class ConfigurationTest extends TestCase
         $this->assertContains(\PDOException::class, $criticalExceptions);
     }
 
-
     public function test_it_loads_sensitive_fields_configuration()
     {
         $sensitiveFields = config('errly.context.sensitive_fields');
-        
+
         $this->assertContains('password', $sensitiveFields);
         $this->assertContains('password_confirmation', $sensitiveFields);
         $this->assertContains('token', $sensitiveFields);
@@ -69,26 +65,23 @@ class ConfigurationTest extends TestCase
         $this->assertContains('ssn', $sensitiveFields);
     }
 
-
     public function test_it_loads_notification_colors_configuration()
     {
         $colors = config('errly.notifications.colors');
-        
+
         $this->assertEquals('danger', $colors['critical']); // Default color
         $this->assertEquals('warning', $colors['high']); // Default color
         $this->assertEquals('#ff9500', $colors['medium']); // Default color
         $this->assertEquals('good', $colors['low']); // Default color
     }
 
-
     public function test_it_registers_error_reporting_service_as_singleton()
     {
         $service1 = app(ErrorReportingService::class);
         $service2 = app(ErrorReportingService::class);
-        
+
         $this->assertSame($service1, $service2);
     }
-
 
     public function test_it_publishes_configuration_file()
     {
@@ -96,21 +89,19 @@ class ConfigurationTest extends TestCase
             '--provider' => ErrlyServiceProvider::class,
             '--tag' => 'laravel-errly-config',
         ])->assertExitCode(0);
-        
+
         $this->assertFileExists(config_path('errly.php'));
-        
+
         // Clean up
         if (file_exists(config_path('errly.php'))) {
             unlink(config_path('errly.php'));
         }
     }
 
-
     public function test_it_registers_test_command()
     {
         $this->assertTrue($this->app->make('Illuminate\Contracts\Console\Kernel')->all()['errly:test'] !== null);
     }
-
 
     public function test_it_respects_environment_variables()
     {
@@ -135,10 +126,10 @@ class ConfigurationTest extends TestCase
         putenv('ERRLY_COLOR_HIGH=#ff8800');
         putenv('ERRLY_COLOR_MEDIUM=#ffcc00');
         putenv('ERRLY_COLOR_LOW=#00ff00');
-        
+
         // Reload configuration
         $this->refreshApplication();
-        
+
         $this->assertEquals(true, config('errly.enabled')); // 'invalid' gets parsed as true by filter_var
         $this->assertEquals('https://hooks.slack.com/services/fake/webhook/url', config('errly.slack.webhook_url')); // Set in TestCase
         $this->assertEquals('#custom-errors', config('errly.slack.channel'));
@@ -159,7 +150,7 @@ class ConfigurationTest extends TestCase
         $this->assertEquals('#ff8800', config('errly.notifications.colors.high'));
         $this->assertEquals('#ffcc00', config('errly.notifications.colors.medium'));
         $this->assertEquals('#00ff00', config('errly.notifications.colors.low'));
-        
+
         // Clean up environment variables
         putenv('ERRLY_ENABLED');
         putenv('ERRLY_SLACK_WEBHOOK_URL');
@@ -183,7 +174,6 @@ class ConfigurationTest extends TestCase
         putenv('ERRLY_COLOR_LOW');
     }
 
-
     public function test_it_handles_malformed_environment_variables()
     {
         // Test boolean parsing
@@ -191,30 +181,30 @@ class ConfigurationTest extends TestCase
         putenv('ERRLY_RATE_LIMITING=yes');
         putenv('ERRLY_INCLUDE_USER=1');
         putenv('ERRLY_INCLUDE_REQUEST=0');
-        
+
         // Test integer parsing
         putenv('ERRLY_MAX_PER_MINUTE=invalid');
         putenv('ERRLY_MAX_STACK_TRACE_LENGTH=not_a_number');
-        
+
         // Test array parsing
         putenv('ERRLY_ALLOWED_ENVIRONMENTS=production,staging,');
-        
+
         // Reload configuration
         $this->refreshApplication();
-        
+
         // Boolean values should be properly parsed
         $this->assertEquals(true, config('errly.enabled')); // 'invalid' -> true (filter_var behavior)
         $this->assertEquals(true, config('errly.rate_limiting.enabled')); // 'yes' -> true (filter_var behavior)
         $this->assertEquals(true, config('errly.context.include_user')); // '1' -> true
         $this->assertEquals(false, config('errly.context.include_request')); // '0' -> false
-        
+
         // Integer values should default or be cast
         $this->assertEquals(0, config('errly.rate_limiting.max_per_minute')); // 'invalid' -> 0
         $this->assertEquals(0, config('errly.context.max_stack_trace_length')); // 'not_a_number' -> 0
-        
+
         // Array should filter out empty values
         $this->assertEquals(['production', 'staging'], config('errly.filters.environments.allowed'));
-        
+
         // Clean up
         putenv('ERRLY_ENABLED');
         putenv('ERRLY_RATE_LIMITING');
@@ -225,34 +215,31 @@ class ConfigurationTest extends TestCase
         putenv('ERRLY_ALLOWED_ENVIRONMENTS');
     }
 
-
     public function test_it_uses_app_name_fallback_when_errly_app_name_is_not_set()
     {
         // Set Laravel app name
         config(['app.name' => 'My Laravel App']);
-        
+
         // Don't set ERRLY_APP_NAME
         putenv('ERRLY_APP_NAME');
-        
+
         // Manually reload the errly configuration
         $this->app['config']->set('errly.notifications.app_name', env('ERRLY_APP_NAME') ?: config('app.name', 'Laravel App'));
-        
+
         $this->assertEquals('My Laravel App', config('errly.notifications.app_name'));
     }
-
 
     public function test_it_falls_back_to_default_app_name_when_both_are_missing()
     {
         // Clear both app name and errly app name
         config(['app.name' => null]);
         putenv('ERRLY_APP_NAME');
-        
+
         // Manually reload the errly configuration
         $this->app['config']->set('errly.notifications.app_name', env('ERRLY_APP_NAME') ?: (config('app.name') ?: 'Laravel App'));
-        
+
         $this->assertEquals('Laravel App', config('errly.notifications.app_name'));
     }
-
 
     public function test_it_validates_configuration_structure()
     {
@@ -283,7 +270,7 @@ class ConfigurationTest extends TestCase
             'notifications.colors.medium',
             'notifications.colors.low',
         ];
-        
+
         foreach ($requiredKeys as $key) {
             $this->assertTrue(
                 config()->has("errly.{$key}"),
@@ -291,7 +278,6 @@ class ConfigurationTest extends TestCase
             );
         }
     }
-
 
     public function test_it_has_reasonable_default_values()
     {
@@ -303,11 +289,11 @@ class ConfigurationTest extends TestCase
         $this->assertIsArray(config('errly.filters.critical_exceptions'));
         $this->assertIsArray(config('errly.context.sensitive_fields'));
         $this->assertIsArray(config('errly.notifications.colors'));
-        
+
         // Test that numeric values are positive
         $this->assertGreaterThan(0, config('errly.rate_limiting.max_per_minute'));
         $this->assertGreaterThan(0, config('errly.context.max_stack_trace_length'));
-        
+
         // Test that boolean values are actually boolean
         $this->assertIsBool(config('errly.enabled'));
         $this->assertIsBool(config('errly.rate_limiting.enabled'));
@@ -317,4 +303,4 @@ class ConfigurationTest extends TestCase
         $this->assertIsBool(config('errly.context.include_stack_trace'));
         $this->assertIsBool(config('errly.notifications.include_server_info'));
     }
-} 
+}

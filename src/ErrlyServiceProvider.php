@@ -34,7 +34,7 @@ class ErrlyServiceProvider extends ServiceProvider
 
     public static function configureExceptions(Exceptions $exceptions): void
     {
-        if (!config('errly.enabled', true)) {
+        if (! config('errly.enabled', true)) {
             return;
         }
 

@@ -17,9 +17,8 @@ class ErrorContextServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->contextService = new ErrorContextService();
+        $this->contextService = new ErrorContextService;
     }
-
 
     public function test_it_gathers_basic_context()
     {
@@ -31,7 +30,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $context['timestamp']);
     }
 
-
     public function test_it_includes_server_info_when_enabled()
     {
         config(['errly.notifications.include_server_info' => true]);
@@ -42,7 +40,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertIsString($context['server']);
     }
 
-
     public function test_it_excludes_server_info_when_disabled()
     {
         config(['errly.notifications.include_server_info' => false]);
@@ -52,15 +49,17 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayNotHasKey('server', $context);
     }
 
-
     public function test_it_includes_user_context_when_authenticated()
     {
         config(['errly.context.include_user' => true]);
 
         // Create a mock user
-        $user = new class extends Authenticatable {
+        $user = new class extends Authenticatable
+        {
             public $id = 123;
+
             public $email = 'test@example.com';
+
             public $name = 'Test User';
 
             public function getAuthIdentifier()
@@ -81,7 +80,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertEquals('Test User', $context['user']['name']);
     }
 
-
     public function test_it_excludes_user_context_when_not_authenticated()
     {
         config(['errly.context.include_user' => true]);
@@ -93,7 +91,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayNotHasKey('user', $context);
     }
 
-
     public function test_it_excludes_user_context_when_disabled()
     {
         config(['errly.context.include_user' => false]);
@@ -103,12 +100,12 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayNotHasKey('user', $context);
     }
 
-
     public function test_it_handles_user_with_only_id()
     {
         config(['errly.context.include_user' => true]);
 
-        $user = new class extends Authenticatable {
+        $user = new class extends Authenticatable
+        {
             public $id = 456;
 
             public function getAuthIdentifier()
@@ -128,12 +125,12 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayNotHasKey('name', $context['user']);
     }
 
-
     public function test_it_handles_user_with_email_verification()
     {
         config(['errly.context.include_user' => true]);
 
-        $user = new class extends Authenticatable implements MustVerifyEmail {
+        $user = new class extends Authenticatable implements MustVerifyEmail
+        {
             public $id = 789;
 
             public function getAuthIdentifier()
@@ -176,7 +173,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertEquals('verified@example.com', $context['user']['email']);
     }
 
-
     public function test_it_includes_request_context_when_available()
     {
         config(['errly.context.include_request' => true]);
@@ -205,7 +201,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayHasKey('input', $context['request']);
     }
 
-
     public function test_it_excludes_request_context_when_disabled()
     {
         config(['errly.context.include_request' => false]);
@@ -214,7 +209,6 @@ class ErrorContextServiceTest extends TestCase
 
         $this->assertArrayNotHasKey('request', $context);
     }
-
 
     public function test_it_redacts_sensitive_input_fields()
     {
@@ -240,7 +234,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertEquals('safe_value', $context['request']['input']['safe_field']);
     }
 
-
     public function test_it_includes_headers_when_enabled()
     {
         config(['errly.context.include_request' => true]);
@@ -261,13 +254,12 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayHasKey('headers', $context['request']);
         $this->assertArrayHasKey('accept', $context['request']['headers']);
         $this->assertArrayHasKey('custom-header', $context['request']['headers']);
-        
+
         // Sensitive headers should be removed
         $this->assertArrayNotHasKey('authorization', $context['request']['headers']);
         $this->assertArrayNotHasKey('cookie', $context['request']['headers']);
         $this->assertArrayNotHasKey('x-api-key', $context['request']['headers']);
     }
-
 
     public function test_it_excludes_headers_when_disabled()
     {
@@ -281,7 +273,6 @@ class ErrorContextServiceTest extends TestCase
 
         $this->assertArrayNotHasKey('headers', $context['request']);
     }
-
 
     public function test_it_handles_missing_request_gracefully()
     {
@@ -297,13 +288,14 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayNotHasKey('user', $context); // User context disabled
     }
 
-
     public function test_it_handles_user_with_username_fallback()
     {
         config(['errly.context.include_user' => true]);
 
-        $user = new class extends Authenticatable {
+        $user = new class extends Authenticatable
+        {
             public $id = 999;
+
             public $username = 'testuser';
 
             public function getAuthIdentifier()
@@ -321,14 +313,16 @@ class ErrorContextServiceTest extends TestCase
         $this->assertEquals('testuser', $context['user']['name']);
     }
 
-
     public function test_it_filters_empty_user_context_fields()
     {
         config(['errly.context.include_user' => true]);
 
-        $user = new class extends Authenticatable {
+        $user = new class extends Authenticatable
+        {
             public $id = 111;
+
             public $email = null;
+
             public $name = '';
 
             public function getAuthIdentifier()
@@ -347,7 +341,6 @@ class ErrorContextServiceTest extends TestCase
         $this->assertArrayNotHasKey('email', $context['user']);
         $this->assertArrayNotHasKey('name', $context['user']);
     }
-
 
     public function test_it_handles_complex_nested_input_data()
     {
@@ -384,4 +377,4 @@ class ErrorContextServiceTest extends TestCase
         Mockery::close();
         parent::tearDown();
     }
-} 
+}
