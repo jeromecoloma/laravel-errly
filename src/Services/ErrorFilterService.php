@@ -8,6 +8,10 @@ class ErrorFilterService
 {
     public function shouldReport(Throwable $exception): bool
     {
+        if (!config('errly.enabled')) {
+            return false;
+        }
+
         if (!$this->isEnvironmentAllowed()) {
             return false;
         }
@@ -70,7 +74,8 @@ class ErrorFilterService
     protected function isServerError(Throwable $exception): bool
     {
         if (method_exists($exception, 'getStatusCode')) {
-            return $exception->getStatusCode() >= 500;
+            $statusCode = call_user_func([$exception, 'getStatusCode']);
+            return $statusCode >= 500;
         }
 
         return false;

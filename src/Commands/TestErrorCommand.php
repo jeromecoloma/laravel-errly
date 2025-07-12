@@ -19,13 +19,17 @@ class TestErrorCommand extends Command
         $this->newLine();
 
         try {
-            match ($type) {
-                'database' => $this->testDatabaseError(),
-                'critical' => $this->testCriticalError(),
-                'validation' => $this->testValidationError(),
-                'custom' => $this->testCustomError(),
-                default => $this->testGeneralError(),
+            $exception = match ($type) {
+                'database' => $this->createDatabaseError(),
+                'critical' => $this->createCriticalError(),
+                'validation' => $this->createValidationError(),
+                'custom' => $this->createCustomError(),
+                default => $this->createGeneralError(),
             };
+
+            // Throw the exception to trigger the catch block
+            throw $exception;
+
         } catch (\Throwable $e) {
             // Check if this exception should be reported
             $filterService = app(ErrorFilterService::class);
@@ -65,14 +69,14 @@ class TestErrorCommand extends Command
         $this->comment("🔍 Test completed. Check your Slack channel for notifications!");
     }
 
-    protected function testDatabaseError(): void
+    protected function createDatabaseError(): \Throwable
     {
         $this->warn("🗄️  Throwing database error...");
         $this->comment("💡 This should trigger a CRITICAL severity notification");
 
         $previous = new \PDOException('Table "non_existent_table" not found');
 
-        throw new \Illuminate\Database\QueryException(
+        return new \Illuminate\Database\QueryException(
             connectionName: 'mysql',
             sql: 'SELECT * FROM non_existent_table',
             bindings: [],
@@ -80,38 +84,38 @@ class TestErrorCommand extends Command
         );
     }
 
-    protected function testCriticalError(): void
+    protected function createCriticalError(): \Throwable
     {
         $this->warn("⚠️  Throwing critical error...");
         $this->comment("💡 This should trigger a CRITICAL severity notification");
 
-        throw new \ErrorException('This is a critical test error from Laravel Errly');
+        return new \ErrorException('This is a critical test error from Laravel Errly');
     }
 
-    protected function testValidationError(): void
+    protected function createValidationError(): \Throwable
     {
         $this->warn("📝 Throwing validation error...");
         $this->comment("💡 This should be IGNORED (no Slack notification)");
 
-        throw new \Illuminate\Validation\ValidationException(
+        return new \Illuminate\Validation\ValidationException(
             validator([], ['required_field' => 'required'])
         );
     }
 
-    protected function testCustomError(): void
+    protected function createCustomError(): \Throwable
     {
         $this->warn("🎯 Throwing custom error...");
         $this->comment("💡 This should trigger a MEDIUM severity notification");
 
-        throw new \Exception('Custom test error from Laravel Errly - Check your Slack!');
+        return new \Exception('Custom test error from Laravel Errly - Check your Slack!');
     }
 
-    protected function testGeneralError(): void
+    protected function createGeneralError(): \Throwable
     {
         $this->warn("🚀 Throwing general error...");
         $this->comment("💡 This should trigger a MEDIUM severity notification");
 
-        throw new \RuntimeException('General test error from Laravel Errly occurred');
+        return new \RuntimeException('General test error from Laravel Errly occurred');
     }
 
     protected function getSeverityLevel(\Throwable $exception): string
@@ -131,8 +135,11 @@ class TestErrorCommand extends Command
             }
         }
 
-        if (method_exists($exception, 'getStatusCode') && $exception->getStatusCode() >= 500) {
-            return 'HIGH';
+        if (method_exists($exception, 'getStatusCode')) {
+            $statusCode = call_user_func([$exception, 'getStatusCode']);
+            if ($statusCode >= 500) {
+                return 'HIGH';
+            }
         }
 
         return 'MEDIUM';

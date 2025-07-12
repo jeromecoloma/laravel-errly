@@ -18,15 +18,33 @@ class ErrorContextService
             $context['server'] = gethostname();
         }
 
-        if (config('errly.context.include_user') && Auth::check()) {
+        if (config('errly.context.include_user') && $this->hasAuthenticatedUser()) {
             $context['user'] = $this->getUserContext();
         }
 
-        if (config('errly.context.include_request') && request()) {
+        if (config('errly.context.include_request') && $this->hasRequest()) {
             $context['request'] = $this->getRequestContext(request());
         }
 
         return $context;
+    }
+
+    protected function hasAuthenticatedUser(): bool
+    {
+        try {
+            return Auth::check();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    protected function hasRequest(): bool
+    {
+        try {
+            return request() !== null;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     protected function getUserContext(): array

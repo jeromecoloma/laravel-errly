@@ -19,6 +19,16 @@ class SlackErrorNotification extends Notification
         return ['slack'];
     }
 
+    public function getException(): Throwable
+    {
+        return $this->exception;
+    }
+
+    public function getContext(): array
+    {
+        return $this->context;
+    }
+
     public function toSlack($notifiable): SlackMessage
     {
         $severity = $this->getSeverityLevel();
@@ -89,8 +99,11 @@ class SlackErrorNotification extends Notification
             }
         }
 
-        if (method_exists($this->exception, 'getStatusCode') && $this->exception->getStatusCode() >= 500) {
-            return 'HIGH';
+        if (method_exists($this->exception, 'getStatusCode')) {
+            $statusCode = call_user_func([$this->exception, 'getStatusCode']);
+            if ($statusCode >= 500) {
+                return 'HIGH';
+            }
         }
 
         return 'MEDIUM';
