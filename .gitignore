@@ -1,6 +1,3 @@
-# Deployment
-_scripts
-
 # Composer Related
 /vendor
 
@@ -32,3 +29,26 @@ phpstan.neon
 testbench.yaml
 /docs
 /coverage
+
+_iwscripts/*
+_scripts
+
+.tags
+
+* of *.*
+*-[2][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]
+*-[2][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].*
+*-[2][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9].*
+*-[2][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9].*
+*-[2][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[a-z]*
+
+## ----------------
+## OS System Files
+## ----------------
+._*
+.VolumeIcon.icns
+.fseventsd
+ehthumbs.db
+Thumbs.db
+.DS_Store
+.com.apple.timemachine.supported
