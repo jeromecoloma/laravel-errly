@@ -1,24 +1,41 @@
 {
     "name": "errly/laravel-errly",
-    "description": "Early error detection and Slack notifications for Laravel applications",
+    "description": "Error monitoring with beautiful Slack notifications for Laravel applications",
     "keywords": [
         "laravel",
         "error-monitoring",
         "slack",
         "notifications",
         "errly",
-        "early-detection",
-        "logging"
+        "error-reporting",
+        "logging",
+        "laravel-12",
+        "exception-handler",
+        "free-alternative",
+        "bugsnag-alternative"
     ],
     "homepage": "https://github.com/jeromecoloma/laravel-errly",
     "license": "MIT",
+    "type": "library",
     "authors": [
         {
             "name": "Jerome Coloma",
             "email": "frozynart@gmail.com",
+            "homepage": "https://github.com/jeromecoloma",
             "role": "Developer"
         }
     ],
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/jeromecoloma"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/jeromecoloma/laravel-errly/issues",
+        "source": "https://github.com/jeromecoloma/laravel-errly",
+        "docs": "https://github.com/jeromecoloma/laravel-errly#readme"
+    },
     "require": {
         "php": "^8.2",
         "spatie/laravel-package-tools": "^1.16",
@@ -55,7 +72,12 @@
         "analyse": "vendor/bin/phpstan analyse --memory-limit=256M",
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
-        "format": "vendor/bin/pint"
+        "format": "vendor/bin/pint",
+        "test-all": [
+            "@format",
+            "@analyse", 
+            "@test"
+        ]
     },
     "config": {
         "sort-packages": true,
