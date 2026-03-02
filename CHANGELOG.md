@@ -5,7 +5,18 @@ All notable changes to `laravel-errly` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/jeromecoloma/laravel-errly/compare/v1.0.2...HEAD)
+## [Unreleased](https://github.com/jeromecoloma/laravel-errly/compare/v1.0.3...HEAD)
+
+## [1.0.3](https://github.com/jeromecoloma/laravel-errly/compare/v1.0.2...v1.0.3) - 2026-03-02
+
+### Added
+
+- **PHP 8.4 support** - Added PHP 8.4 to the CI test matrix
+
+### Changed
+
+- **Platform constraint** - Pinned `platform.php` to `8.2` in `composer.json` so the lock file always resolves packages compatible with the minimum supported PHP version, preventing Symfony 8.x (PHP >=8.4 only) from being pulled in
+- **Updated lock file** - Regenerated `composer.lock` with Symfony 7.x packages compatible across PHP 8.2, 8.3, and 8.4
 
 ## [1.0.2](https://github.com/jeromecoloma/laravel-errly/compare/v1.0.1...v1.0.2) - 2026-03-02
 
