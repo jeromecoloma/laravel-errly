@@ -5,6 +5,8 @@ namespace Errly\LaravelErrly\Commands;
 use Errly\LaravelErrly\Facades\Errly;
 use Errly\LaravelErrly\Services\ErrorFilterService;
 use Illuminate\Console\Command;
+use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
 
 class TestErrorCommand extends Command
 {
@@ -76,7 +78,7 @@ class TestErrorCommand extends Command
 
         $previous = new \PDOException('Table "non_existent_table" not found');
 
-        return new \Illuminate\Database\QueryException(
+        return new QueryException(
             connectionName: 'mysql',
             sql: 'SELECT * FROM non_existent_table',
             bindings: [],
@@ -97,7 +99,7 @@ class TestErrorCommand extends Command
         $this->warn('📝 Throwing validation error...');
         $this->comment('💡 This should be IGNORED (no Slack notification)');
 
-        return new \Illuminate\Validation\ValidationException(
+        return new ValidationException(
             validator([], ['required_field' => 'required'])
         );
     }
@@ -125,7 +127,7 @@ class TestErrorCommand extends Command
             \TypeError::class,
             \Error::class,
             \ErrorException::class,
-            \Illuminate\Database\QueryException::class,
+            QueryException::class,
             \PDOException::class,
         ];
 

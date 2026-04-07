@@ -277,10 +277,7 @@ class TestErrorCommandTest extends TestCase
             ->expectsOutput('✅ Exception reported to Errly - check your Slack!')
             ->assertExitCode(0);
 
-        // Note: In test environment, rate limiting may not work as expected due to cache isolation
-        // Each command execution may get its own cache instance
-        // In production, this would properly rate limit to 1 notification
-        Notification::assertSentOnDemandTimes(SlackErrorNotification::class, 2);
+        Notification::assertSentOnDemandTimes(SlackErrorNotification::class, 1);
     }
 
     public function test_it_respects_environment_filtering_in_command()

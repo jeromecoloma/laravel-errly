@@ -172,11 +172,19 @@ class ErrorReportingServiceTest extends TestCase
         $gatheredContext = ['environment' => 'testing'];
         $customContext = ['custom' => 'data'];
 
+        $this->filterService
+            ->expects($this->once())
+            ->method('shouldReport')
+            ->with($exception)
+            ->willReturn(true);
+
         $this->contextService
             ->expects($this->once())
             ->method('gather')
             ->willReturn($gatheredContext);
 
+        config(['errly.enabled' => true]);
+        config(['errly.rate_limiting.enabled' => false]);
         config(['errly.slack.webhook_url' => 'https://hooks.slack.com/test']);
 
         Notification::fake();
@@ -194,11 +202,19 @@ class ErrorReportingServiceTest extends TestCase
         $exception = new RuntimeException('Test exception');
         $gatheredContext = ['environment' => 'testing'];
 
+        $this->filterService
+            ->expects($this->once())
+            ->method('shouldReport')
+            ->with($exception)
+            ->willReturn(true);
+
         $this->contextService
             ->expects($this->once())
             ->method('gather')
             ->willReturn($gatheredContext);
 
+        config(['errly.enabled' => true]);
+        config(['errly.rate_limiting.enabled' => false]);
         config(['errly.slack.webhook_url' => 'https://hooks.slack.com/test']);
 
         Notification::fake();
@@ -305,5 +321,30 @@ class ErrorReportingServiceTest extends TestCase
         $isRateLimited = $method->invoke($this->reportingService, $exception);
 
         $this->assertTrue($isRateLimited);
+    }
+
+    public function test_it_does_not_manually_report_when_filtered_out()
+    {
+        $exception = new RuntimeException('Test exception');
+
+        $this->filterService
+            ->expects($this->once())
+            ->method('shouldReport')
+            ->with($exception)
+            ->willReturn(false);
+
+        $this->contextService
+            ->expects($this->never())
+            ->method('gather');
+
+        config(['errly.enabled' => true]);
+        config(['errly.rate_limiting.enabled' => false]);
+        config(['errly.slack.webhook_url' => 'https://hooks.slack.com/test']);
+
+        Notification::fake();
+
+        $this->reportingService->report($exception);
+
+        Notification::assertNothingSent();
     }
 }

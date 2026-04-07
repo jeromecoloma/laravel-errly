@@ -367,6 +367,21 @@ class ErrorReportingIntegrationTest extends TestCase
         );
     }
 
+    public function test_it_does_not_manually_report_when_rate_limited()
+    {
+        config(['errly.rate_limiting.enabled' => true]);
+        config(['errly.rate_limiting.max_per_minute' => 1]);
+
+        Notification::fake();
+
+        $exception = new RuntimeException('Rate limited exception');
+
+        Errly::report($exception);
+        Errly::report($exception);
+
+        Notification::assertSentOnDemandTimes(SlackErrorNotification::class, 1);
+    }
+
     public function test_it_handles_exceptions_without_request_context()
     {
         Notification::fake();

@@ -3,6 +3,7 @@
 namespace Errly\LaravelErrly\Services;
 
 use Errly\LaravelErrly\Notifications\SlackErrorNotification;
+use Errly\LaravelErrly\Support\SensitiveDataRedactor;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
@@ -40,23 +41,7 @@ class ErrorReportingService
 
     public function handleException(Throwable $e): void
     {
-        if (! $this->shouldReport($e)) {
-            return;
-        }
-
-        if ($this->isRateLimited($e)) {
-            return;
-        }
-
-        try {
-            $context = $this->contextService->gather();
-            $this->sendSlackNotification($e, $context);
-        } catch (Throwable $notificationException) {
-            logger()->error('Errly: Failed to send error notification', [
-                'original_exception' => $e->getMessage(),
-                'notification_exception' => $notificationException->getMessage(),
-            ]);
-        }
+        $this->reportException($e);
     }
 
     protected function shouldReport(Throwable $e): bool
@@ -108,12 +93,27 @@ class ErrorReportingService
      */
     public function report(Throwable $e, array $context = []): void
     {
-        if (! empty($context)) {
-            $context = array_merge($this->contextService->gather(), $context);
-        } else {
-            $context = $this->contextService->gather();
+        $this->reportException($e, $context);
+    }
+
+    protected function reportException(Throwable $e, array $context = []): void
+    {
+        if (! config('errly.enabled') || ! $this->shouldReport($e) || $this->isRateLimited($e)) {
+            return;
         }
 
-        $this->sendSlackNotification($e, $context);
+        try {
+            $baseContext = $this->contextService->gather();
+            $mergedContext = empty($context) ? $baseContext : array_merge($baseContext, $context);
+
+            $this->sendSlackNotification($e, $mergedContext);
+        } catch (Throwable $notificationException) {
+            $sensitiveFields = config('errly.context.sensitive_fields', []);
+
+            logger()->error('Errly: Failed to send error notification', [
+                'original_exception' => SensitiveDataRedactor::redactString($e->getMessage(), $sensitiveFields),
+                'notification_exception' => SensitiveDataRedactor::redactString($notificationException->getMessage(), $sensitiveFields),
+            ]);
+        }
     }
 }

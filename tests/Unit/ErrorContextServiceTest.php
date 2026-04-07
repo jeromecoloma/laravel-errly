@@ -363,13 +363,30 @@ class ErrorContextServiceTest extends TestCase
         $context = $this->contextService->gather();
 
         $this->assertEquals('John Doe', $context['request']['input']['user']['name']);
-        // Password field should be redacted if it exists in the input
-        if (isset($context['request']['input']['password'])) {
-            $this->assertEquals('[REDACTED]', $context['request']['input']['password']);
-        }
+        $this->assertEquals('[REDACTED]', $context['request']['input']['user']['password']);
         $this->assertEquals('visible', $context['request']['input']['nested']['public']);
-        // Note: nested field redaction might not work with current implementation
-        // This test documents the current behavior
+        $this->assertEquals('[REDACTED]', $context['request']['input']['nested']['secret']);
+    }
+
+    public function test_it_redacts_additional_sensitive_headers_from_configuration()
+    {
+        config(['errly.context.include_request' => true]);
+        config(['errly.context.include_headers' => true]);
+        config(['errly.context.sensitive_headers' => ['authorization', 'x-signature']]);
+
+        $request = Request::create('/test', 'GET', [], [], [], [
+            'HTTP_AUTHORIZATION' => 'Bearer token123',
+            'HTTP_X_SIGNATURE' => 'signed-value',
+            'HTTP_ACCEPT' => 'application/json',
+        ]);
+
+        $this->app->instance('request', $request);
+
+        $context = $this->contextService->gather();
+
+        $this->assertArrayNotHasKey('authorization', $context['request']['headers']);
+        $this->assertArrayNotHasKey('x-signature', $context['request']['headers']);
+        $this->assertArrayHasKey('accept', $context['request']['headers']);
     }
 
     protected function tearDown(): void

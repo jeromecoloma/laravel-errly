@@ -1,22 +1,13 @@
-## ✨ **Why Laravel Errly?**
-
-- 🚨 **Instant Slack alerts** - Get notified the moment errors happen
-- ⚡ **Simple setup** - Add one line to `bootstrap/app.php` and configure your webhook
-- 🎨 **Beautiful notifications** - Rich, actionable Slack messages with context
-- 🛡️ **Smart filtering** - Only get alerts for errors that matter
-- 🚀 **Laravel 12 native** - Built for modern Laravel architecture
-- 🆓 **Free & open source** - No subscription fees or limits
-
-> **Note**: Currently# 🚨 Laravel Errly
+# 🚨 Laravel Errly
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/errly/laravel-errly.svg?style=flat-square)](https://packagist.org/packages/errly/laravel-errly)
 [![Total Downloads](https://img.shields.io/packagist/dt/errly/laravel-errly.svg?style=flat-square)](https://packagist.org/packages/errly/laravel-errly)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/jeromecoloma/laravel-errly/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/jeromecoloma/laravel-errly/actions?query=workflow%3Atests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/jeromecoloma/laravel-errly/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/jeromecoloma/laravel-errly/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 
-**Early error detection and beautiful Slack notifications for Laravel 12 applications.**
+**Early error detection and beautiful Slack notifications for Laravel 12 and 13 applications on PHP 8.2 through 8.5.**
 
-Laravel Errly is the simplest way to get **instant Slack notifications** when critical errors occur in your Laravel application. Built specifically for Laravel 12's modern architecture with **minimal setup** - just one line of code and a Slack webhook.
+Laravel Errly is the simplest way to get **instant Slack notifications** when critical errors occur in your Laravel application. Built for Laravel 12 and 13 with **minimal setup** - just one line of code and a Slack webhook.
 
 ---
 
@@ -26,7 +17,7 @@ Laravel Errly is the simplest way to get **instant Slack notifications** when cr
 - ⚡ **Simple setup** - Add one line to `bootstrap/app.php` and configure your webhook
 - 🎨 **Beautiful notifications** - Rich, actionable Slack messages with context
 - 🛡️ **Smart filtering** - Only get alerts for errors that matter
-- 🚀 **Laravel 12 native** - Built for modern Laravel architecture
+- 🚀 **Laravel 12 & 13 ready** - Built for modern Laravel architecture
 - 🆓 **Free & open source** - No subscription fees or limits
 
 > **📢 Currently supports Slack notifications.** Discord, Teams, and email support are planned for future releases.
@@ -218,6 +209,7 @@ Laravel Errly automatically protects sensitive data:
 
 - **🔒 Redacts passwords** - Never exposes authentication data
 - **🔒 Filters headers** - Removes authorization tokens
+- **🔒 Recursively sanitizes payloads** - Nested request secrets are redacted too
 - **🔒 Configurable sensitive fields** - Define your own protected fields
 - **🔒 Safe by default** - Conservative data collection
 

@@ -2,6 +2,7 @@
 
 namespace Errly\LaravelErrly\Notifications;
 
+use Errly\LaravelErrly\Support\SensitiveDataRedactor;
 use Illuminate\Notifications\Messages\SlackAttachment;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
@@ -76,9 +77,14 @@ class SlackErrorNotification extends Notification
 
     protected function getErrorFields(): array
     {
+        $sensitiveFields = config('errly.context.sensitive_fields', []);
+
         return [
             'Exception' => get_class($this->exception),
-            'Message' => $this->exception->getMessage() ?: 'No message provided',
+            'Message' => SensitiveDataRedactor::redactString(
+                $this->exception->getMessage() ?: 'No message provided',
+                $sensitiveFields
+            ),
             'File' => $this->getFormattedFilePath(),
             'Line' => $this->exception->getLine(),
             'URL' => $this->context['request']['url'] ?? 'N/A',
@@ -148,6 +154,7 @@ class SlackErrorNotification extends Notification
     {
         $trace = $this->exception->getTraceAsString();
         $maxLength = config('errly.context.max_stack_trace_length', 2000);
+        $trace = SensitiveDataRedactor::redactString($trace, config('errly.context.sensitive_fields', [])) ?? $trace;
 
         if (strlen($trace) > $maxLength) {
             $trace = substr($trace, 0, $maxLength)."\n... (truncated)";

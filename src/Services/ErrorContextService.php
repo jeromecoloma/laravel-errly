@@ -2,8 +2,11 @@
 
 namespace Errly\LaravelErrly\Services;
 
+use Errly\LaravelErrly\Support\SensitiveDataRedactor;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Throwable;
 
 class ErrorContextService
 {
@@ -33,7 +36,7 @@ class ErrorContextService
     {
         try {
             return Auth::check();
-        } catch (\Exception $e) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -41,8 +44,8 @@ class ErrorContextService
     protected function hasRequest(): bool
     {
         try {
-            return request() !== null;
-        } catch (\Exception $e) {
+            return app()->bound('request') && request() instanceof Request;
+        } catch (Throwable) {
             return false;
         }
     }
@@ -69,7 +72,7 @@ class ErrorContextService
             return $user->email;
         }
 
-        if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail) {
+        if ($user instanceof MustVerifyEmail) {
             return $user->getEmailForVerification();
         }
 
@@ -106,11 +109,18 @@ class ErrorContextService
     protected function getSafeHeaders(Request $request): array
     {
         $headers = $request->headers->all();
-
-        $sensitiveHeaders = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
+        $sensitiveHeaders = config('errly.context.sensitive_headers', [
+            'authorization',
+            'cookie',
+            'set-cookie',
+            'x-api-key',
+            'x-auth-token',
+            'x-csrf-token',
+            'x-xsrf-token',
+        ]);
 
         foreach ($sensitiveHeaders as $header) {
-            unset($headers[$header]);
+            unset($headers[strtolower($header)]);
         }
 
         return $headers;
@@ -121,12 +131,6 @@ class ErrorContextService
         $input = $request->all();
         $sensitiveFields = config('errly.context.sensitive_fields', []);
 
-        foreach ($sensitiveFields as $field) {
-            if (isset($input[$field])) {
-                $input[$field] = '[REDACTED]';
-            }
-        }
-
-        return $input;
+        return SensitiveDataRedactor::redactArray($input, $sensitiveFields);
     }
 }

@@ -5,6 +5,12 @@ namespace Errly\LaravelErrly\Tests\Feature;
 use Errly\LaravelErrly\ErrlyServiceProvider;
 use Errly\LaravelErrly\Services\ErrorReportingService;
 use Errly\LaravelErrly\Tests\TestCase;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 class ConfigurationTest extends TestCase
 {
@@ -33,11 +39,11 @@ class ConfigurationTest extends TestCase
     {
         $ignoredExceptions = config('errly.filters.ignored_exceptions');
 
-        $this->assertContains(\Illuminate\Validation\ValidationException::class, $ignoredExceptions);
-        $this->assertContains(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class, $ignoredExceptions);
-        $this->assertContains(\Illuminate\Auth\AuthenticationException::class, $ignoredExceptions);
-        $this->assertContains(\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException::class, $ignoredExceptions);
-        $this->assertContains(\Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException::class, $ignoredExceptions);
+        $this->assertContains(ValidationException::class, $ignoredExceptions);
+        $this->assertContains(NotFoundHttpException::class, $ignoredExceptions);
+        $this->assertContains(AuthenticationException::class, $ignoredExceptions);
+        $this->assertContains(MethodNotAllowedHttpException::class, $ignoredExceptions);
+        $this->assertContains(TooManyRequestsHttpException::class, $ignoredExceptions);
     }
 
     public function test_it_loads_critical_exceptions_configuration()
@@ -48,7 +54,7 @@ class ConfigurationTest extends TestCase
         $this->assertContains(\TypeError::class, $criticalExceptions);
         $this->assertContains(\Error::class, $criticalExceptions);
         $this->assertContains(\ErrorException::class, $criticalExceptions);
-        $this->assertContains(\Illuminate\Database\QueryException::class, $criticalExceptions);
+        $this->assertContains(QueryException::class, $criticalExceptions);
         $this->assertContains(\PDOException::class, $criticalExceptions);
     }
 

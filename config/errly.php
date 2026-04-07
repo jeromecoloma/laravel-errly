@@ -1,5 +1,12 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -42,20 +49,20 @@ return [
         ],
 
         'ignored_exceptions' => [
-            \Illuminate\Validation\ValidationException::class,
-            \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
-            \Illuminate\Auth\AuthenticationException::class,
-            \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException::class,
-            \Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException::class,
+            ValidationException::class,
+            NotFoundHttpException::class,
+            AuthenticationException::class,
+            MethodNotAllowedHttpException::class,
+            TooManyRequestsHttpException::class,
         ],
 
         'critical_exceptions' => [
-            \ParseError::class,
-            \TypeError::class,
-            \Error::class,
-            \ErrorException::class,
-            \Illuminate\Database\QueryException::class,
-            \PDOException::class,
+            ParseError::class,
+            TypeError::class,
+            Error::class,
+            ErrorException::class,
+            QueryException::class,
+            PDOException::class,
         ],
     ],
 
@@ -81,11 +88,22 @@ return [
         'include_headers' => filter_var(env('ERRLY_INCLUDE_HEADERS', false), FILTER_VALIDATE_BOOLEAN),
         'include_stack_trace' => filter_var(env('ERRLY_INCLUDE_STACK_TRACE', true), FILTER_VALIDATE_BOOLEAN),
         'max_stack_trace_length' => (int) env('ERRLY_MAX_STACK_TRACE_LENGTH', 2000),
+        'sensitive_headers' => [
+            'authorization',
+            'cookie',
+            'set-cookie',
+            'x-api-key',
+            'x-auth-token',
+            'x-csrf-token',
+            'x-xsrf-token',
+        ],
 
         'sensitive_fields' => [
             'password',
             'password_confirmation',
             'token',
+            'access_token',
+            'refresh_token',
             'api_key',
             'secret',
             'credit_card',

@@ -322,6 +322,24 @@ class SlackErrorNotificationTest extends TestCase
         $this->assertEquals('No message provided', $fields['Message']);
     }
 
+    public function test_it_redacts_sensitive_tokens_from_exception_messages()
+    {
+        config(['errly.context.sensitive_fields' => ['password', 'token']]);
+
+        $exception = new RuntimeException('token=secret-value password=hunter2');
+        $notification = new SlackErrorNotification($exception, []);
+
+        $reflection = new \ReflectionClass($notification);
+        $method = $reflection->getMethod('getErrorFields');
+        $method->setAccessible(true);
+
+        $fields = $method->invoke($notification);
+
+        $this->assertStringNotContainsString('secret-value', $fields['Message']);
+        $this->assertStringNotContainsString('hunter2', $fields['Message']);
+        $this->assertStringContainsString('[REDACTED]', $fields['Message']);
+    }
+
     public function test_it_handles_missing_request_context()
     {
         $exception = new RuntimeException('Test exception');
