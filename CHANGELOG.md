@@ -5,7 +5,14 @@ All notable changes to `laravel-errly` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/jeromecoloma/laravel-errly/compare/v1.0.3...HEAD)
+## [Unreleased](https://github.com/jeromecoloma/laravel-errly/compare/v1.1.5...HEAD)
+
+## [1.1.5](https://github.com/jeromecoloma/laravel-errly/compare/v1.1.4...v1.1.5) - 2026-05-24
+
+### Changed
+
+- **Updated dependencies** - Refreshed `composer.lock` to resolve `symfony/yaml` advisories (CVE-2026-45304, CVE-2026-45305, CVE-2026-45133) flagged by `composer audit`
+- **CI Node runtime** - Opted CI workflows into Node 24 via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` to silence the Node 20 deprecation warning from transitive `actions/github-script` usage
 
 ## [1.0.3](https://github.com/jeromecoloma/laravel-errly/compare/v1.0.2...v1.0.3) - 2026-03-02
 
