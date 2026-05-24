@@ -10,6 +10,7 @@ on:
 
 env:
   COMPOSER_NO_INTERACTION: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
