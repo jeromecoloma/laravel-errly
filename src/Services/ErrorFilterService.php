@@ -2,6 +2,7 @@
 
 namespace Errly\LaravelErrly\Services;
 
+use Illuminate\Support\Env;
 use Throwable;
 
 class ErrorFilterService
@@ -45,7 +46,7 @@ class ErrorFilterService
 
         $environment = app()->bound('env')
             ? app()->environment()
-            : env('APP_ENV', 'production');
+            : (Env::get('APP_ENV') ?? 'production');
 
         return in_array($environment, $allowedEnvironments);
     }
