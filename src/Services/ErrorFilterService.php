@@ -43,7 +43,11 @@ class ErrorFilterService
 
         $allowedEnvironments = config('errly.filters.environments.allowed', []);
 
-        return in_array(app()->environment(), $allowedEnvironments);
+        $environment = app()->bound('env')
+            ? app()->environment()
+            : env('APP_ENV', 'production');
+
+        return in_array($environment, $allowedEnvironments);
     }
 
     protected function isIgnoredException(Throwable $exception): bool

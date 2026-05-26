@@ -5,7 +5,13 @@ All notable changes to `laravel-errly` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/jeromecoloma/laravel-errly/compare/v1.1.5...HEAD)
+## [Unreleased](https://github.com/jeromecoloma/laravel-errly/compare/v1.1.6...HEAD)
+
+## [1.1.6](https://github.com/jeromecoloma/laravel-errly/compare/v1.1.5...v1.1.6) - 2026-05-26
+
+### Fixed
+
+- **Early-bootstrap crash** - `ErrorFilterService::isEnvironmentAllowed()` no longer throws `ReflectionException: Class "env" does not exist` when an exception fires before Laravel finishes booting the container (observed on PHP 8.5). Falls back to `env('APP_ENV')` when the `env` container binding isn't yet registered.
 
 ## [1.1.5](https://github.com/jeromecoloma/laravel-errly/compare/v1.1.4...v1.1.5) - 2026-05-24
 

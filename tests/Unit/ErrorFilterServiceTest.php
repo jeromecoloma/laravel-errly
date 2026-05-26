@@ -196,6 +196,24 @@ class ErrorFilterServiceTest extends TestCase
         $this->assertTrue($this->filterService->shouldReport($exception));
     }
 
+    public function test_it_does_not_crash_when_env_binding_is_missing()
+    {
+        // Simulates an exception thrown very early in Laravel's bootstrap,
+        // before the 'env' container binding is registered. Previously this
+        // caused: "Target class [env] does not exist" (regression #N).
+        config(['errly.filters.environments.enabled' => true]);
+        config(['errly.filters.environments.allowed' => ['staging']]);
+
+        $app = app();
+        unset($app['env']);
+
+        $exception = new RuntimeException('Boot-time error');
+
+        // The important thing is that this doesn't throw a
+        // "Target class [env] does not exist" ReflectionException.
+        $this->assertFalse($this->filterService->shouldReport($exception));
+    }
+
     public function test_it_handles_empty_configuration_arrays()
     {
         // Set empty arrays for exception lists
