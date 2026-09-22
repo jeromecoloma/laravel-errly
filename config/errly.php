@@ -126,4 +126,48 @@ return [
             'low' => env('ERRLY_COLOR_LOW', 'good'),
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Heartbeats
+    |--------------------------------------------------------------------------
+    |
+    | A heartbeat pings an outside monitor every minute. When the pings stop,
+    | the monitor alerts - which catches a dead scheduler or queue worker that
+    | throws no exception. Needs `schedule:run` (or `schedule:work`) running.
+    |
+    | A check is a full ping URL, a Healthchecks.io check UUID, or a slug
+    | (with ERRLY_HEALTHCHECKS_PING_KEY). A blank check is switched off.
+    |
+    | `queues` maps a queue name to a check. `default` means the connection's
+    | default queue. Add more named queues here after publishing the config.
+    |
+    | ERRLY_ENABLED=false switches heartbeats off as well.
+    |
+    */
+    'heartbeat' => [
+        'enabled' => filter_var(env('ERRLY_HEARTBEAT_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'client' => env('ERRLY_HEARTBEAT_CLIENT', 'healthchecks'),
+
+        'scheduler' => env('ERRLY_HEARTBEAT_SCHEDULER'),
+        'queues' => [
+            'default' => env('ERRLY_HEARTBEAT_QUEUE_DEFAULT'),
+        ],
+        'queue_connection' => env('ERRLY_HEARTBEAT_QUEUE_CONNECTION'),
+
+        'clients' => [
+            'healthchecks' => [
+                'url' => env('ERRLY_HEALTHCHECKS_URL', 'https://hc-ping.com'),
+                'ping_key' => env('ERRLY_HEALTHCHECKS_PING_KEY'),
+                // Creates a missing slug check on first ping. Healthchecks.io
+                // gives it a 1 day period, so set it to 1 minute afterwards.
+                'auto_provision' => filter_var(env('ERRLY_HEALTHCHECKS_AUTO_PROVISION', false), FILTER_VALIDATE_BOOLEAN),
+                // The scheduler ping runs inline, so a slow monitor holds up the
+                // tasks after it. A missed ping is covered by the check's grace.
+                'timeout_seconds' => (int) env('ERRLY_HEALTHCHECKS_TIMEOUT', 5),
+                'attempts' => (int) env('ERRLY_HEALTHCHECKS_ATTEMPTS', 1),
+                'retry_delay_ms' => 1000,
+            ],
+        ],
+    ],
 ];
