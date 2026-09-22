@@ -1,6 +1,6 @@
 {
     "name": "errly/laravel-errly",
-    "description": "Error monitoring with beautiful Slack notifications for Laravel applications",
+    "description": "Error monitoring with beautiful Slack notifications, plus scheduler and queue heartbeats, for Laravel applications",
     "keywords": [
         "laravel",
         "error-monitoring",
@@ -13,7 +13,11 @@
         "laravel-13",
         "exception-handler",
         "free-alternative",
-        "bugsnag-alternative"
+        "bugsnag-alternative",
+        "heartbeat",
+        "healthchecks",
+        "cron-monitoring",
+        "queue-monitoring"
     ],
     "homepage": "https://github.com/jeromecoloma/laravel-errly",
     "license": "MIT",
