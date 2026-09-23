@@ -30,14 +30,16 @@ class ErrlyServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/errly.php' => config_path('errly.php'),
             ], 'laravel-errly-config');
-
-            $this->commands([
-                TestErrorCommand::class,
-                TestHeartbeatCommand::class,
-            ]);
-
-            $this->callAfterResolving(Schedule::class, HeartbeatSchedule::register(...));
         }
+
+        // Outside the console check: cron may run a CGI PHP build, where
+        // runningInConsole() is false. Neither does anything on web requests.
+        $this->commands([
+            TestErrorCommand::class,
+            TestHeartbeatCommand::class,
+        ]);
+
+        $this->callAfterResolving(Schedule::class, HeartbeatSchedule::register(...));
     }
 
     public static function configureExceptions(Exceptions $exceptions): void

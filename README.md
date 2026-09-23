@@ -389,6 +389,14 @@ Run `php artisan errly:heartbeat-test` and read the reason next to each `FAILED`
 
 If the test passes but a queue check still goes down, no worker is listening on that queue, or `schedule:run` is not running.
 
+On cPanel/CloudLinux, `/usr/bin/php` in cron can be the CGI build: its output starts with `Content-type: text/html`, and `php -v` shows `cgi-fcgi`. Point cron at the command-line binary instead:
+
+```bash
+cd /path/to/app && /usr/local/bin/php artisan schedule:run
+```
+
+`errly:heartbeat-test` prints a warning when it runs under a PHP build other than the CLI.
+
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
