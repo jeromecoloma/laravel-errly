@@ -1,14 +1,17 @@
 <?php
 
+use Errly\LaravelErrly\Commands\TestHeartbeatCommand;
 use Errly\LaravelErrly\Heartbeat\Clients\HealthchecksClient;
 use Errly\LaravelErrly\Heartbeat\HeartbeatClient;
 use Errly\LaravelErrly\Heartbeat\HeartbeatException;
 use Errly\LaravelErrly\Heartbeat\HeartbeatManager;
 use Errly\LaravelErrly\Heartbeat\HeartbeatSchedule;
 use Errly\LaravelErrly\Heartbeat\SendHeartbeat;
+use Illuminate\Console\Application as ConsoleApplication;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -280,3 +283,64 @@ test('the test command fails when nothing is configured', function () {
         ->expectsOutput('No heartbeats are configured.')
         ->assertExitCode(1);
 });
+
+// cPanel/CloudLinux cron can run the CGI PHP build, where runningInConsole() is false.
+function bootOutsideConsole(object $test): void
+{
+    $_SERVER['APP_RUNNING_IN_CONSOLE'] = 'false';
+    ConsoleApplication::forgetBootstrappers();
+
+    try {
+        (fn () => $this->refreshApplication())->call($test);
+    } finally {
+        unset($_SERVER['APP_RUNNING_IN_CONSOLE']);
+    }
+}
+
+test('heartbeats are scheduled when PHP is not the CLI build', function () {
+    bootOutsideConsole($this);
+    config(['errly.heartbeat.scheduler' => 'https://monitor.test/scheduler']);
+
+    expect(app()->runningInConsole())->toBeFalse()
+        ->and(collect(app(Schedule::class)->events())->pluck('description'))->toContain('errly:heartbeat:scheduler');
+});
+
+test('nothing is scheduled outside the CLI build until a check is configured', function () {
+    bootOutsideConsole($this);
+
+    expect(app(Schedule::class)->events())->toBe([]);
+});
+
+test('the commands are registered when PHP is not the CLI build', function () {
+    bootOutsideConsole($this);
+
+    expect(app()->runningInConsole())->toBeFalse()
+        ->and(Artisan::all())->toHaveKeys(['errly:test', 'errly:heartbeat-test']);
+});
+
+test('the test command warns when PHP is not the CLI build, and still pings', function (string $sapi, bool $warns) {
+    config(['errly.heartbeat.scheduler' => 'https://monitor.test/scheduler']);
+    $this->http->fake(['https://monitor.test/scheduler' => Http::response('OK')]);
+    app()->bind(TestHeartbeatCommand::class, fn () => new class($sapi) extends TestHeartbeatCommand
+    {
+        public function __construct(private string $sapi)
+        {
+            parent::__construct();
+        }
+
+        protected function phpSapi(): string
+        {
+            return $this->sapi;
+        }
+    });
+
+    $warning = "Running under the {$sapi} PHP build, not the CLI.";
+    $command = $this->artisan('errly:heartbeat-test');
+    $warns ? $command->expectsOutputToContain($warning) : $command->doesntExpectOutputToContain($warning);
+    $command->expectsOutputToContain('OK     scheduler')->assertExitCode(0)->run();
+
+    $this->http->assertSentCount(1);
+})->with([
+    'cgi' => ['cgi-fcgi', true],
+    'cli' => ['cli', false],
+]);

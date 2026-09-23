@@ -32,6 +32,10 @@ class TestHeartbeatCommand extends Command
             return self::FAILURE;
         }
 
+        if (! in_array($sapi = $this->phpSapi(), ['cli', 'phpdbg'], true)) {
+            $this->warn("Running under the {$sapi} PHP build, not the CLI. If cron uses this binary, point it at the CLI php instead.");
+        }
+
         $this->info('Pinging with the ['.$heartbeats->getDefaultDriver().'] client.');
         $this->comment('This does not go through the queue, so it proves the checks exist, not that workers run.');
 
@@ -48,5 +52,10 @@ class TestHeartbeatCommand extends Command
         }
 
         return $failed ? self::FAILURE : self::SUCCESS;
+    }
+
+    protected function phpSapi(): string
+    {
+        return PHP_SAPI;
     }
 }
