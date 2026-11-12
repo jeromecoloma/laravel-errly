@@ -197,6 +197,8 @@ Errly redacts passwords, strips authorization headers, and sanitizes nested requ
 ],
 ```
 
+Database errors are posted with the failed query's placeholders (`?`) instead of its values, and values the database repeats in its error (such as a duplicate key) show as `[REDACTED]`. To post the values, set `ERRLY_REDACT_SQL_BINDINGS=false`.
+
 ### Performance
 
 - **Rate limiting** - prevents notification spam

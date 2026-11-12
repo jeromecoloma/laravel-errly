@@ -2,6 +2,11 @@
 
 namespace Errly\LaravelErrly\Support;
 
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Str;
+use PDOException;
+use Throwable;
+
 class SensitiveDataRedactor
 {
     /**
@@ -44,6 +49,52 @@ class SensitiveDataRedactor
         );
 
         return $sanitized ?? $value;
+    }
+
+    /**
+     * Strip the values a database error carries in its message: the bound
+     * query values, and the row values the driver repeats (duplicate keys,
+     * rejected column values, failing rows). The query keeps its placeholders.
+     */
+    public static function redactDatabaseValues(Throwable $exception, string $message): string
+    {
+        if ($exception instanceof QueryException) {
+            $message = self::replaceBoundSql($exception, $message);
+        }
+
+        if (! $exception instanceof QueryException && ! $exception instanceof PDOException) {
+            return $message;
+        }
+
+        $redacted = preg_replace(
+            [
+                "/(Duplicate entry )'.*'( for key )/s",
+                "/(Incorrect \\w+ value: )'.*?'( for column )/s",
+                '/(Key \\(.*?\\)=\\().*?(\\) already exists)/s',
+                '/(Failing row contains \\().*?(\\)\\.)/s',
+            ],
+            [
+                "$1'[REDACTED]'$2",
+                "$1'[REDACTED]'$2",
+                '$1[REDACTED]$2',
+                '$1[REDACTED]$2',
+            ],
+            $message
+        );
+
+        return $redacted ?? $message;
+    }
+
+    protected static function replaceBoundSql(QueryException $exception, string $message): string
+    {
+        $sql = $exception->getSql();
+        $boundSql = Str::replaceArray('?', $exception->getBindings(), $sql);
+
+        if ($boundSql !== '' && str_contains($message, $boundSql)) {
+            return str_replace($boundSql, $sql, $message);
+        }
+
+        return preg_replace_callback('/, SQL: .*\)$/s', static fn (): string => ', SQL: '.$sql.')', $message) ?? $message;
     }
 
     /**
