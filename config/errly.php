@@ -88,6 +88,11 @@ return [
         'include_headers' => filter_var(env('ERRLY_INCLUDE_HEADERS', false), FILTER_VALIDATE_BOOLEAN),
         'include_stack_trace' => filter_var(env('ERRLY_INCLUDE_STACK_TRACE', true), FILTER_VALIDATE_BOOLEAN),
         'max_stack_trace_length' => (int) env('ERRLY_MAX_STACK_TRACE_LENGTH', 2000),
+
+        // Database errors carry the failed query with its values filled in, and
+        // duplicate-key errors repeat the value. Both can hold tokens, emails or
+        // keys, so they are replaced with placeholders unless this is turned off.
+        'redact_sql_bindings' => filter_var(env('ERRLY_REDACT_SQL_BINDINGS', true), FILTER_VALIDATE_BOOLEAN),
         'sensitive_headers' => [
             'authorization',
             'cookie',

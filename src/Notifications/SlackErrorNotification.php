@@ -81,10 +81,7 @@ class SlackErrorNotification extends Notification
 
         return [
             'Exception' => get_class($this->exception),
-            'Message' => SensitiveDataRedactor::redactString(
-                $this->exception->getMessage() ?: 'No message provided',
-                $sensitiveFields
-            ),
+            'Message' => SensitiveDataRedactor::redactString($this->getMessage(), $sensitiveFields),
             'File' => $this->getFormattedFilePath(),
             'Line' => $this->exception->getLine(),
             'URL' => $this->context['request']['url'] ?? 'N/A',
@@ -93,6 +90,17 @@ class SlackErrorNotification extends Notification
             'Environment' => $this->context['environment'] ?? 'Unknown',
             'Server' => $this->context['server'] ?? 'Unknown',
         ];
+    }
+
+    protected function getMessage(): string
+    {
+        $message = $this->exception->getMessage() ?: 'No message provided';
+
+        if (config('errly.context.redact_sql_bindings', true)) {
+            return SensitiveDataRedactor::redactDatabaseValues($this->exception, $message);
+        }
+
+        return $message;
     }
 
     protected function getSeverityLevel(): string

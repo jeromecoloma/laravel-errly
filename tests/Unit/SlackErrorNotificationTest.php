@@ -383,4 +383,73 @@ class SlackErrorNotificationTest extends TestCase
 
         $this->assertEquals(['slack'], $channels);
     }
+
+    public function test_it_redacts_query_values_and_duplicate_entries_by_default()
+    {
+        $exception = new QueryException(
+            'mysql',
+            'insert into `push_subscriptions` (`endpoint`, `auth_token`) values (?, ?)',
+            ['https://push.example.com/endpoint-secret', 'auth-token-secret'],
+            new PDOException("SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 'https://push.example.com/endpoint-secret' for key 'push_subscriptions_endpoint_unique'"),
+            ['driver' => 'mysql', 'host' => '127.0.0.1', 'port' => 3306, 'database' => 'app'],
+        );
+
+        $message = $this->messageFieldFor($exception);
+
+        $this->assertStringNotContainsString('endpoint-secret', $message);
+        $this->assertStringNotContainsString('auth-token-secret', $message);
+        $this->assertStringContainsString("Duplicate entry '[REDACTED]' for key 'push_subscriptions_endpoint_unique'", $message);
+        $this->assertStringContainsString('SQL: insert into `push_subscriptions` (`endpoint`, `auth_token`) values (?, ?))', $message);
+    }
+
+    public function test_it_redacts_values_postgres_repeats_in_its_errors()
+    {
+        $exception = new QueryException(
+            'pgsql',
+            'insert into "users" ("email", "name") values (?, ?)',
+            ['jane@example.com', null],
+            new PDOException("SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint \"users_email_unique\"\nDETAIL:  Key (email)=(jane@example.com) already exists."),
+        );
+
+        $message = $this->messageFieldFor($exception);
+
+        $this->assertStringNotContainsString('jane@example.com', $message);
+        $this->assertStringContainsString('Key (email)=([REDACTED]) already exists.', $message);
+    }
+
+    public function test_it_redacts_a_duplicate_entry_on_a_bare_pdo_exception()
+    {
+        $message = $this->messageFieldFor(new PDOException("SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 'jane@example.com' for key 'users_email_unique'"));
+
+        $this->assertSame("SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '[REDACTED]' for key 'users_email_unique'", $message);
+    }
+
+    public function test_it_keeps_query_values_when_redaction_is_turned_off()
+    {
+        config(['errly.context.redact_sql_bindings' => false]);
+
+        $exception = new QueryException(
+            'mysql',
+            'select * from `users` where `email` = ?',
+            ['jane@example.com'],
+            new PDOException('SQLSTATE[42S02]: Base table or view not found'),
+        );
+
+        $this->assertStringContainsString('where `email` = jane@example.com', $this->messageFieldFor($exception));
+    }
+
+    public function test_it_leaves_other_exception_messages_alone()
+    {
+        $message = $this->messageFieldFor(new RuntimeException("Duplicate entry 'kept' for key 'not_a_database_error'"));
+
+        $this->assertSame("Duplicate entry 'kept' for key 'not_a_database_error'", $message);
+    }
+
+    protected function messageFieldFor(\Throwable $exception): string
+    {
+        $method = (new \ReflectionClass(SlackErrorNotification::class))->getMethod('getErrorFields');
+        $method->setAccessible(true);
+
+        return $method->invoke(new SlackErrorNotification($exception))['Message'];
+    }
 }
