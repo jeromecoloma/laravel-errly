@@ -2,18 +2,19 @@
 
 namespace Errly\LaravelErrly\Services;
 
-use Errly\LaravelErrly\Notifications\SlackErrorNotification;
+use Errly\LaravelErrly\Channels\ChannelManager;
+use Errly\LaravelErrly\ErrorReport;
 use Errly\LaravelErrly\Support\SensitiveDataRedactor;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 class ErrorReportingService
 {
     public function __construct(
         protected ErrorFilterService $filterService,
-        protected ErrorContextService $contextService
+        protected ErrorContextService $contextService,
+        protected ?ChannelManager $channels = null,
     ) {}
 
     public function configure(Exceptions $exceptions): void
@@ -69,6 +70,30 @@ class ErrorReportingService
         return false;
     }
 
+    /**
+     * Repeats the rate limiter drops are counted per fingerprint and sent as
+     * `suppressed` with the next report of that error.
+     */
+    protected function countSuppressed(Throwable $e): void
+    {
+        $key = $this->getSuppressedKey($e);
+
+        Cache::add($key, 0, now()->addDay());
+        Cache::increment($key);
+    }
+
+    protected function pullSuppressed(Throwable $e): int
+    {
+        return (int) Cache::pull($this->getSuppressedKey($e), 0);
+    }
+
+    protected function getSuppressedKey(Throwable $e): string
+    {
+        $prefix = config('errly.rate_limiting.cache_key_prefix', 'errly_rate_limit');
+
+        return $prefix.':suppressed:'.md5(ErrorReport::fingerprintInput($e));
+    }
+
     protected function getRateLimitKey(Throwable $e): string
     {
         $prefix = config('errly.rate_limiting.cache_key_prefix', 'errly_rate_limit');
@@ -76,16 +101,30 @@ class ErrorReportingService
         return $prefix.':'.md5(get_class($e).$e->getMessage().$e->getFile().$e->getLine());
     }
 
-    protected function sendSlackNotification(Throwable $e, array $context): void
+    /**
+     * Each channel is tried on its own, so one failing does not stop the rest.
+     */
+    protected function sendToChannels(ErrorReport $report): void
     {
-        $webhookUrl = config('errly.slack.webhook_url');
+        $channels = $this->channels ??= app(ChannelManager::class);
 
-        if (! $webhookUrl) {
-            return;
+        foreach ($channels->names() as $name) {
+            try {
+                $channels->driver($name)->send($report);
+            } catch (Throwable $channelException) {
+                $this->logFailure($report->exception, $channelException);
+            }
         }
+    }
 
-        Notification::route('slack', $webhookUrl)
-            ->notify(new SlackErrorNotification($e, $context));
+    protected function logFailure(Throwable $e, Throwable $notificationException): void
+    {
+        $sensitiveFields = config('errly.context.sensitive_fields', []);
+
+        logger()->error('Errly: Failed to send error notification', [
+            'original_exception' => SensitiveDataRedactor::redactString($e->getMessage(), $sensitiveFields),
+            'notification_exception' => SensitiveDataRedactor::redactString($notificationException->getMessage(), $sensitiveFields),
+        ]);
     }
 
     /**
@@ -98,7 +137,13 @@ class ErrorReportingService
 
     protected function reportException(Throwable $e, array $context = []): void
     {
-        if (! config('errly.enabled') || ! $this->shouldReport($e) || $this->isRateLimited($e)) {
+        if (! config('errly.enabled') || ! $this->shouldReport($e)) {
+            return;
+        }
+
+        if ($this->isRateLimited($e)) {
+            $this->countSuppressed($e);
+
             return;
         }
 
@@ -106,14 +151,13 @@ class ErrorReportingService
             $baseContext = $this->contextService->gather();
             $mergedContext = empty($context) ? $baseContext : array_merge($baseContext, $context);
 
-            $this->sendSlackNotification($e, $mergedContext);
+            $report = ErrorReport::fromException($e, $mergedContext, $this->pullSuppressed($e));
         } catch (Throwable $notificationException) {
-            $sensitiveFields = config('errly.context.sensitive_fields', []);
+            $this->logFailure($e, $notificationException);
 
-            logger()->error('Errly: Failed to send error notification', [
-                'original_exception' => SensitiveDataRedactor::redactString($e->getMessage(), $sensitiveFields),
-                'notification_exception' => SensitiveDataRedactor::redactString($notificationException->getMessage(), $sensitiveFields),
-            ]);
+            return;
         }
+
+        $this->sendToChannels($report);
     }
 }

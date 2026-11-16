@@ -113,6 +113,9 @@ The defaults work without changes. Everything below can be adjusted in `config/e
 // config/errly.php
 return [
     'enabled' => env('ERRLY_ENABLED', true),
+
+    // Where reports go. Each channel is tried on its own.
+    'channels' => explode(',', env('ERRLY_CHANNELS', 'slack')),
     
     'slack' => [
         'webhook_url' => env('ERRLY_SLACK_WEBHOOK_URL'),
@@ -157,6 +160,7 @@ ERRLY_ENABLED=true
 ERRLY_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../xxx
 
 # Advanced Configuration
+ERRLY_CHANNELS=slack
 ERRLY_SLACK_CHANNEL=#production-errors
 ERRLY_SLACK_USERNAME="MyApp Alerts"
 ERRLY_SLACK_EMOJI=⚠️
@@ -204,6 +208,67 @@ Database errors are posted with the failed query's placeholders (`?`) instead of
 - **Rate limiting** - prevents notification spam
 - **Filtering** - only processes errors that matter
 - **Low memory use** - lightweight error context collection
+
+### Channels
+
+Errly builds each error report once - severity, redacted message, fields and stack trace - and hands it to every channel in `ERRLY_CHANNELS` (default `slack`). A channel that fails is logged and the others still send.
+
+Channels are resolved with Laravel's `Manager`, so you can add your own from a service provider:
+
+```php
+use Errly\LaravelErrly\Channels\Channel;
+use Errly\LaravelErrly\Channels\ChannelManager;
+use Errly\LaravelErrly\ErrorReport;
+
+app(ChannelManager::class)->extend('my-channel', fn () => new class implements Channel {
+    public function send(ErrorReport $report): void
+    {
+        // $report->severity, $report->message, $report->fields, $report->trace
+    }
+});
+```
+
+Then set `ERRLY_CHANNELS=slack,my-channel`.
+
+## Errly app (iPhone and Mac)
+
+Errly can also send alerts to the Errly app as encrypted push notifications. Reports are encrypted in your Laravel app with a key that only your app and your paired devices hold; the Errly service stores and forwards ciphertext and never sees the key.
+
+### Pair a device
+
+```bash
+php artisan errly:pair
+```
+
+The first run creates a channel on the Errly service and writes `ERRLY_APP_CHANNEL`, `ERRLY_APP_SEND_TOKEN` and a new `ERRLY_APP_KEY` to `.env`. It also adds `app` to `ERRLY_CHANNELS`. Then it draws a QR code in the terminal: scan it with the Errly app. The code works once and expires after 10 minutes. Run the command again to pair another device; a device added after the first has to be approved from one already paired.
+
+On a Mac, run `php artisan errly:pair --link` and paste the printed link into the app. The QR code and the link hold the channel key, so do not save or share them.
+
+If you cache your config, run `php artisan config:cache` after pairing.
+
+The PHP `sodium` extension is required, and is included in standard PHP builds.
+
+### Manage devices
+
+```bash
+php artisan errly:devices                 # list paired devices
+php artisan errly:devices --revoke=<id>   # remove one
+php artisan errly:pair --rotate           # new send token and key; removes every device
+```
+
+Rotate if `.env` may have leaked, then pair your devices again.
+
+### Options
+
+```env
+ERRLY_CHANNELS=slack,app
+ERRLY_APP_URL=https://errlyservice.tallbottech.com
+
+# Leave the signed-in user and the request URL out of app reports
+ERRLY_APP_INCLUDE_PERSONAL_DATA=false
+```
+
+Each report is sent with a 5 second timeout. If the service does not answer, or answers with a server error or a rate limit, one retry is queued on your default queue connection. Other failures are logged and never thrown into your app. When the rate limiter drops repeats of an error, the next report of that error carries the count.
 
 ## Manual error reporting
 
