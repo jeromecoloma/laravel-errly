@@ -93,6 +93,7 @@ class DevicesCommand extends Command
 
         $this->error(match ($response->status()) {
             401 => "Could not {$action}: the service did not accept the send token. Run `php artisan errly:pair` to pair again.",
+            410 => "Could not {$action}: the service deleted this channel. Run `php artisan errly:pair` to make a new one.",
             default => "Could not {$action}: the service answered {$response->status()}".($code !== '' ? " ({$code})" : '').'.',
         });
 

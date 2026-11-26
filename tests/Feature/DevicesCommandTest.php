@@ -62,6 +62,14 @@ test('a refused send token points at errly:pair', function () {
         ->assertFailed();
 });
 
+test('a deleted channel points at errly:pair', function () {
+    $this->http->fake(['errly.test/*' => $this->http->response(['error' => 'channel_deleted'], 410)]);
+
+    $this->artisan('errly:devices')
+        ->expectsOutputToContain('deleted this channel')
+        ->assertFailed();
+});
+
 test('it needs a paired app', function () {
     config(['errly.app.channel' => null]);
 

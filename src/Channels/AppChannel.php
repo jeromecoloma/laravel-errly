@@ -84,6 +84,7 @@ class AppChannel implements Channel
 
         match (true) {
             $status === 401 => $this->warn('the Errly service did not accept the send token. Run `php artisan errly:pair` to pair this app again.'),
+            $status === 410 => $this->warn('the Errly service deleted this channel, after a day with no paired device or 30 idle days. Run `php artisan errly:pair` to make a new one.'),
             $status === 429 => $this->retry($body, $isRetry, max(1, (int) ($response->header('Retry-After') ?: 60)), 'the Errly service is rate limiting this channel'),
             $status >= 500 => $this->retry($body, $isRetry, self::RETRY_DELAY_SECONDS, "the Errly service answered {$status}"),
             default => $this->warn("the Errly service refused the report ({$status} {$code})."),

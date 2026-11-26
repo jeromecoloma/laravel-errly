@@ -9,6 +9,8 @@ use Errly\LaravelErrly\Facades\Errly;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
+use Illuminate\Queue\Connectors\SyncConnector;
+use Illuminate\Queue\QueueManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
@@ -182,6 +184,17 @@ test('a refused send token is logged with a hint and not retried', function () {
     Queue::assertNothingPushed();
 });
 
+test('a deleted channel is logged with a hint and not retried', function () {
+    $this->http->fake(['errly.test/*' => $this->http->response(['error' => 'channel_deleted'], 410)]);
+    Log::spy();
+
+    Errly::report(new RuntimeException('Boom'));
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_contains($message, 'deleted this channel')
+        && str_contains($message, 'php artisan errly:pair'));
+    Queue::assertNothingPushed();
+});
+
 test('a report the service refuses for its content is logged and not retried', function (int $status, string $code) {
     $this->http->fake(['errly.test/*' => $this->http->response(['error' => $code], $status)]);
     Log::spy();
@@ -255,4 +268,40 @@ test('the reporter does not throw when the service cannot be reached', function 
     Errly::report(new RuntimeException('Boom'));
 
     Log::shouldHaveReceived('warning')->once();
+});
+
+test('a key that is not 32 bytes is logged and does not throw into the app', function () {
+    config(['errly.app.key' => 'c2hvcnQ']);
+    Log::spy();
+
+    Errly::report(new RuntimeException('Boom'));
+
+    $this->http->assertNothingSent();
+    Log::shouldHaveReceived('error')->once()->withArgs(fn (string $message, array $context) => str_contains($context['notification_exception'], 'ERRLY_APP_KEY'));
+});
+
+test('a retry that cannot be queued is logged and does not throw into the app', function () {
+    $this->http->fake(['errly.test/*' => $this->http->response(['error' => 'internal'], 503)]);
+    config(['queue.default' => 'broken', 'queue.connections.broken' => ['driver' => 'missing']]);
+    Queue::swap(new QueueManager(app()));
+    Log::spy();
+
+    Errly::report(new RuntimeException('Boom'));
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_contains($message, 'could not be queued'));
+});
+
+test('on the sync queue the one retry runs at once and then gives up', function () {
+    $this->http->fake(['errly.test/*' => $this->http->response(['error' => 'internal'], 503)]);
+    config(['queue.default' => 'sync']);
+    Queue::swap($queue = new QueueManager(app()));
+    $queue->addConnector('sync', fn () => new SyncConnector);
+    Log::spy();
+
+    Errly::report(new RuntimeException('Boom'));
+
+    $bodies = collect($this->http->recorded())->map(fn ($pair) => $pair[0]->data());
+    expect($bodies)->toHaveCount(2)
+        ->and($bodies[1])->toBe($bodies[0]);
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_contains($message, 'dropped'));
 });

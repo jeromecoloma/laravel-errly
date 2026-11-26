@@ -1,6 +1,6 @@
 {
     "name": "errly/laravel-errly",
-    "description": "Error monitoring with beautiful Slack notifications, plus scheduler and queue heartbeats, for Laravel applications",
+    "description": "Error monitoring with Slack notifications and encrypted alerts in the Errly app, plus scheduler and queue heartbeats, for Laravel applications",
     "keywords": [
         "laravel",
         "error-monitoring",
@@ -59,6 +59,9 @@
         "phpstan/extension-installer": "^1.3 || ^2.0",
         "phpstan/phpstan-deprecation-rules": "^1.1 || ^2.0",
         "phpstan/phpstan-phpunit": "^1.3 || ^2.0"
+    },
+    "suggest": {
+        "ext-sodium": "Required by the Errly app channel to encrypt reports. Included in standard PHP builds."
     },
     "autoload": {
         "psr-4": {

@@ -33,14 +33,23 @@ class PairCommand extends Command
     {
         $this->app = (array) config('errly.app', []);
 
-        if (! str_starts_with(strtolower((string) ($this->app['url'] ?? '')), 'https://')) {
-            $this->error('ERRLY_APP_URL must be an https URL.');
+        // The app only accepts a lowercase scheme in the pairing link.
+        if (! str_starts_with((string) ($this->app['url'] ?? ''), 'https://')) {
+            $this->error('ERRLY_APP_URL must be an https:// URL.');
 
             return self::FAILURE;
         }
 
         $envPath = $this->laravel->environmentFilePath();
         $hasChannel = filled($this->app['channel'] ?? null) && filled($this->app['send_token'] ?? null);
+
+        // A cached config hides what is already in .env, so a new channel
+        // here could replace one a device has paired with.
+        if (($this->option('rotate') || ! $hasChannel) && $this->laravel->configurationIsCached()) {
+            $this->error('The config is cached. Run `php artisan config:clear`, pair, then `php artisan config:cache`.');
+
+            return self::FAILURE;
+        }
 
         if (($this->option('rotate') || ! $hasChannel) && ! is_writable($envPath)) {
             $this->error("Cannot write {$envPath}. Errly saves the channel, send token and key there.");
@@ -75,7 +84,8 @@ class PairCommand extends Command
 
             $joinCode = $this->client()->createJoinCode();
 
-            if ($joinCode->status() === 401 && ! $this->option('rotate')) {
+            // 410 for 90 days after the service deletes a channel, then 401.
+            if (in_array($joinCode->status(), [401, 410], true) && ! $this->option('rotate')) {
                 $this->warn('The Errly service no longer knows this channel. Channels with no paired device are removed after 24 hours, and idle ones after 30 days.');
 
                 if (! is_writable($envPath) || ! $this->confirm('Create a new channel?', true)) {
@@ -174,7 +184,7 @@ class PairCommand extends Command
 
         $this->error(match ($response->status()) {
             401 => "Could not {$action}: the service did not accept the send token. Remove ERRLY_APP_CHANNEL, ERRLY_APP_SEND_TOKEN and ERRLY_APP_KEY from .env and run `php artisan errly:pair` again.",
-            403 => "Could not {$action}: this channel is suspended.",
+            410 => "Could not {$action}: the service deleted this channel. Remove ERRLY_APP_CHANNEL, ERRLY_APP_SEND_TOKEN and ERRLY_APP_KEY from .env and run `php artisan errly:pair` again.",
             429 => "Could not {$action}: too many requests. Try again in ".($response->header('Retry-After') ?: 'a few').' seconds.',
             default => "Could not {$action}: the service answered {$response->status()}".($code !== '' ? " ({$code})" : '').'.',
         });

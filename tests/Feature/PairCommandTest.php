@@ -100,9 +100,9 @@ test('a paired app only asks for a new join code', function () {
     $this->http->assertSentCount(1);
 });
 
-test('a channel the service has forgotten is replaced after asking', function () {
+test('a channel the service has forgotten is replaced after asking', function (int $status, string $code) {
     pairingService($this->http, [
-        'errly.test/v1/channels/AAAAAAAAAAAAAAAAAAAAAA/join-codes' => $this->http->response(['error' => 'unauthorized'], 401),
+        'errly.test/v1/channels/AAAAAAAAAAAAAAAAAAAAAA/join-codes' => $this->http->response(['error' => $code], $status),
     ]);
     config([
         'errly.app.channel' => 'AAAAAAAAAAAAAAAAAAAAAA',
@@ -115,7 +115,10 @@ test('a channel the service has forgotten is replaced after asking', function ()
         ->assertSuccessful();
 
     expect(envValues($this->envFile)['ERRLY_APP_CHANNEL'])->toBe('CCCCCCCCCCCCCCCCCCCCCC');
-});
+})->with([
+    'unknown' => [401, 'unauthorized'],
+    'deleted' => [410, 'channel_deleted'],
+]);
 
 test('--rotate asks first, then saves the new token and a new key', function () {
     pairingService($this->http);
@@ -142,11 +145,52 @@ test('--rotate asks first, then saves the new token and a new key', function () 
         && $request->hasHeader('Authorization', 'Bearer old-send-token'));
 });
 
-test('the service URL must be https', function () {
-    config(['errly.app.url' => 'http://errly.test']);
+test('the service URL must be https, with the lowercase scheme the app accepts', function (string $url) {
+    config(['errly.app.url' => $url]);
 
     $this->artisan('errly:pair')->assertFailed();
     $this->http->assertNothingSent();
+})->with(['http://errly.test', 'HTTPS://errly.test']);
+
+test('a cached config is refused before a channel is made', function () {
+    pairingService($this->http);
+    app()->instance('config_loaded_from_cache', true);
+
+    $this->artisan('errly:pair')
+        ->expectsOutputToContain('config:clear')
+        ->assertFailed();
+
+    $this->http->assertNothingSent();
+    expect(envValues($this->envFile))->not->toHaveKey('ERRLY_APP_KEY');
+});
+
+test('a cached config still lets a paired app make a join code', function () {
+    pairingService($this->http);
+    config([
+        'errly.app.channel' => 'AAAAAAAAAAAAAAAAAAAAAA',
+        'errly.app.send_token' => 'old-send-token',
+        'errly.app.key' => Protocol::newKey(),
+    ]);
+    app()->instance('config_loaded_from_cache', true);
+
+    $this->artisan('errly:pair')->assertSuccessful();
+
+    $this->http->assertSentCount(1);
+});
+
+test('a deleted channel cannot be rotated and says how to start again', function () {
+    pairingService($this->http, [
+        'errly.test/v1/channels/*/rotate' => $this->http->response(['error' => 'channel_deleted'], 410),
+    ]);
+    config([
+        'errly.app.channel' => 'AAAAAAAAAAAAAAAAAAAAAA',
+        'errly.app.send_token' => 'old-send-token',
+        'errly.app.key' => Protocol::newKey(),
+    ]);
+
+    $this->artisan('errly:pair', ['--rotate' => true, '--force' => true])
+        ->expectsOutputToContain('deleted this channel')
+        ->assertFailed();
 });
 
 test('a refused channel request is reported', function () {
