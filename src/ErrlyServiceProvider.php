@@ -2,6 +2,9 @@
 
 namespace Errly\LaravelErrly;
 
+use Errly\LaravelErrly\Channels\ChannelManager;
+use Errly\LaravelErrly\Commands\DevicesCommand;
+use Errly\LaravelErrly\Commands\PairCommand;
 use Errly\LaravelErrly\Commands\TestErrorCommand;
 use Errly\LaravelErrly\Commands\TestHeartbeatCommand;
 use Errly\LaravelErrly\Heartbeat\HeartbeatManager;
@@ -22,6 +25,7 @@ class ErrlyServiceProvider extends ServiceProvider
 
         $this->app->singleton(ErrorReportingService::class);
         $this->app->singleton(HeartbeatManager::class);
+        $this->app->singleton(ChannelManager::class);
     }
 
     public function boot(): void
@@ -37,6 +41,8 @@ class ErrlyServiceProvider extends ServiceProvider
         $this->commands([
             TestErrorCommand::class,
             TestHeartbeatCommand::class,
+            PairCommand::class,
+            DevicesCommand::class,
         ]);
 
         $this->callAfterResolving(Schedule::class, HeartbeatSchedule::register(...));

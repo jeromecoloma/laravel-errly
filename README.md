@@ -5,23 +5,26 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/jeromecoloma/laravel-errly/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/jeromecoloma/laravel-errly/actions?query=workflow%3Atests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/jeromecoloma/laravel-errly/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/jeromecoloma/laravel-errly/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 
-Slack error alerts and heartbeat monitoring for Laravel 12 and 13 on PHP 8.2 through 8.5.
+Error alerts and heartbeat monitoring for Laravel 12 and 13 on PHP 8.2 through 8.5.
 
-Errly sends a Slack message when your application throws an error that matters, and pings an outside monitor so you hear about it when the scheduler or a queue worker stops. Setup is one line in `bootstrap/app.php` and a Slack webhook.
+Errly alerts you when your application throws an error that matters, and pings an outside monitor so you hear about it when the scheduler or a queue worker stops. Alerts go to Slack, to the Errly app on iPhone and Mac, or to both. Setup is one line in `bootstrap/app.php`, plus a Slack webhook or `php artisan errly:pair`.
 
 - **Slack alerts** with the request, user, server and stack trace
+- **Errly app alerts** on iPhone and Mac, encrypted in your app so the service that delivers them cannot read them
 - **Filtering** that skips 404s, validation and auth errors, and rate limits the rest
 - **Heartbeats** that alert you when the scheduler or a worker stops, even when nothing throws
 - **Redaction** of passwords, tokens and other sensitive fields
 - **Free and open source** under the MIT license
 
-> **Error notifications currently go to Slack.** Discord, Teams and email support are planned. Heartbeats support [Healthchecks.io](https://healthchecks.io) (hosted or self-hosted), and other monitors can be plugged in.
+> **Error notifications go to Slack and the Errly app.** Use either one or both. Discord, Teams and email support are planned, and you can add your own [channel](#channels). Heartbeats support [Healthchecks.io](https://healthchecks.io) (hosted or self-hosted), and other monitors can be plugged in.
 
 ## Requirements
 
 - PHP 8.2+
 - Laravel 12+
-- A Slack workspace with an incoming webhook
+- Somewhere to send alerts, one or both of:
+  - Slack: a workspace with an incoming webhook
+  - Errly app: the app on an iPhone or Mac, and the PHP `sodium` extension (included in standard PHP builds)
 - Optional: a [Healthchecks.io](https://healthchecks.io) account for heartbeats
 
 ## Quick Start
@@ -33,21 +36,31 @@ composer require errly/laravel-errly
 php artisan vendor:publish --tag=laravel-errly-config
 ```
 
-### 2. Create a Slack webhook
+### 2. Set up Slack, the Errly app, or both
+
+**Slack**
 
 1. Go to [Slack API Apps](https://api.slack.com/apps)
 2. Create new app → "From scratch"
 3. Enable "Incoming Webhooks"
 4. Add a webhook to the channel you want alerts in
-5. Copy the webhook URL
-
-### 3. Add it to `.env`
+5. Copy the webhook URL into `.env`:
 
 ```env
 ERRLY_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```
 
-### 4. Register the exception handler
+**Errly app**
+
+```bash
+php artisan errly:pair
+```
+
+Scan the QR code it draws with the Errly app. See [Errly app](#errly-app-iphone-and-mac) for the details.
+
+`ERRLY_CHANNELS` decides where alerts go. It defaults to `slack`, and `errly:pair` adds `app`, so with a Slack webhook set both get every alert. For the app alone, set `ERRLY_CHANNELS=app`.
+
+### 3. Register the exception handler
 
 ```php
 // bootstrap/app.php
@@ -64,13 +77,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->create();
 ```
 
-### 5. Send a test alert
+### 4. Send a test alert
 
 ```bash
 php artisan errly:test
 ```
 
-A test notification should appear in your Slack channel.
+A test alert should appear in Slack, the Errly app, or both.
 
 ## What an alert looks like
 
@@ -113,6 +126,9 @@ The defaults work without changes. Everything below can be adjusted in `config/e
 // config/errly.php
 return [
     'enabled' => env('ERRLY_ENABLED', true),
+
+    // Where reports go. Each channel is tried on its own.
+    'channels' => explode(',', env('ERRLY_CHANNELS', 'slack')),
     
     'slack' => [
         'webhook_url' => env('ERRLY_SLACK_WEBHOOK_URL'),
@@ -157,6 +173,7 @@ ERRLY_ENABLED=true
 ERRLY_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../xxx
 
 # Advanced Configuration
+ERRLY_CHANNELS=slack
 ERRLY_SLACK_CHANNEL=#production-errors
 ERRLY_SLACK_USERNAME="MyApp Alerts"
 ERRLY_SLACK_EMOJI=⚠️
@@ -205,6 +222,69 @@ Database errors are posted with the failed query's placeholders (`?`) instead of
 - **Filtering** - only processes errors that matter
 - **Low memory use** - lightweight error context collection
 
+### Channels
+
+Errly builds each error report once - severity, redacted message, fields and stack trace - and hands it to every channel in `ERRLY_CHANNELS` (default `slack`). A channel that fails is logged and the others still send.
+
+Channels are resolved with Laravel's `Manager`, so you can add your own from a service provider:
+
+```php
+use Errly\LaravelErrly\Channels\Channel;
+use Errly\LaravelErrly\Channels\ChannelManager;
+use Errly\LaravelErrly\ErrorReport;
+
+app(ChannelManager::class)->extend('my-channel', fn () => new class implements Channel {
+    public function send(ErrorReport $report): void
+    {
+        // $report->severity, $report->message, $report->fields, $report->trace
+    }
+});
+```
+
+Then set `ERRLY_CHANNELS=slack,my-channel`.
+
+## Errly app (iPhone and Mac)
+
+Errly can also send alerts to the Errly app as encrypted push notifications. Reports are encrypted in your Laravel app with a key that only your app and your paired devices hold; the Errly service stores and forwards ciphertext and never sees the key.
+
+### Pair a device
+
+```bash
+php artisan errly:pair
+```
+
+The first run creates a channel on the Errly service and writes `ERRLY_APP_CHANNEL`, `ERRLY_APP_SEND_TOKEN` and a new `ERRLY_APP_KEY` to `.env`. It also adds `app` to `ERRLY_CHANNELS`. Then it draws a QR code in the terminal: scan it with the Errly app. The code works once and expires after 10 minutes. Run the command again to pair another device; a device added after the first has to be approved from one already paired.
+
+On a Mac, run `php artisan errly:pair --link` and paste the printed link into the app. The QR code and the link hold the channel key, so do not save or share them.
+
+If your config is cached, run `php artisan config:clear` first: `errly:pair` will not create or rotate a channel while the config is cached. Run `php artisan config:cache` after pairing.
+
+The app channel needs the PHP `sodium` extension, which is included in standard PHP builds. Slack does not need it. Without it, app reports are not sent and the reason is logged.
+
+### Manage devices
+
+```bash
+php artisan errly:devices                 # list paired devices
+php artisan errly:devices --revoke=<id>   # remove one
+php artisan errly:pair --rotate           # new send token and key; removes every device
+```
+
+Rotate if `.env` may have leaked, then pair your devices again.
+
+### Options
+
+```env
+ERRLY_CHANNELS=slack,app
+ERRLY_APP_URL=https://errlyservice.tallbottech.com
+
+# Leave the signed-in user and the request URL out of app reports
+ERRLY_APP_INCLUDE_PERSONAL_DATA=false
+```
+
+Each report is sent with a 5 second timeout. If the service does not answer, or answers with a server error or a rate limit, one retry is queued on your default queue connection (on the `sync` driver it runs straight away). Other failures are logged and never thrown into your app. When the rate limiter drops repeats of an error, the next report of that error carries the count.
+
+The service deletes a channel that has had no paired device for a day, or no use for 30 days. Reports to it are then logged with a warning, and `php artisan errly:pair` offers to make a new channel.
+
 ## Manual error reporting
 
 ```php
@@ -228,7 +308,7 @@ try {
 
 ## Heartbeat Monitoring
 
-An exception alert cannot tell you that nothing is running. If the scheduler or a queue worker dies, no error is thrown and no Slack message is sent. Heartbeats cover that gap: every minute Errly pings an outside monitor, and the monitor alerts you when the pings stop.
+An exception alert cannot tell you that nothing is running. If the scheduler or a queue worker dies, no error is thrown and no alert is sent. Heartbeats cover that gap: every minute Errly pings an outside monitor, and the monitor alerts you when the pings stop.
 
 Heartbeats are off until you configure a check, so existing installs are unaffected. They need the scheduler running (`schedule:run` from cron, or `schedule:work`).
 
@@ -323,7 +403,7 @@ Then set `ERRLY_HEARTBEAT_CLIENT=my-monitor`.
 ## Testing
 
 ```bash
-# Test your Slack integration with a general error
+# Send a general test error to your channels
 php artisan errly:test
 
 # Test specific error types
@@ -365,6 +445,12 @@ tail -f storage/logs/laravel.log
 use Errly\LaravelErrly\Facades\Errly;
 Errly::report(new Exception('Manual test'));
 ```
+
+### Not receiving alerts in the Errly app?
+
+1. Check `app` is in `ERRLY_CHANNELS`, and run `php artisan errly:devices` to see the paired devices.
+2. Look for lines starting with `Errly:` in `storage/logs/laravel.log`. They say why a report was not sent.
+3. Repeats of one error are pushed on the 1st, 10th and 100th time; the others are only listed in the app. When testing, run another `errly:test` type or resolve the alert in the app first.
 
 ### Too many notifications?
 

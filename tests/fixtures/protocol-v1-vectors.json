@@ -1,0 +1,20 @@
+{
+    "description": "Errly protocol v1 test vectors. Real envelopes use a random nonce; this one is fixed so the output is repeatable.",
+    "key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    "k_enc_hex": "add7e486f54e4ffe8d6f615120b71884d583d7ae0afd3ddc754ee0466355f7e2",
+    "k_fp_hex": "81c296ab3967782239e4a47c1d8efc72ca6c3042bd70b90b2bf927e1aed39961",
+    "channel_id": "AAECAwQFBgcICQoLDA0ODw",
+    "report_id": "0193a5f0-7c2e-7b3a-9f1e-1c2d3e4f5a6b",
+    "nonce_hex": "a0a1a2a3a4a5a6a7a8a9aaab",
+    "summary_plaintext": "{\"v\":1,\"id\":\"0193a5f0-7c2e-7b3a-9f1e-1c2d3e4f5a6b\",\"kind\":\"error\",\"severity\":\"critical\",\"app\":\"client-portal\",\"environment\":\"production\",\"title\":\"QueryException\",\"message\":\"SQLSTATE[23000]: Integrity constraint violation\",\"location\":\"app/Services/Billing.php:142\",\"suppressed\":7,\"occurred_at\":\"2026-11-15T02:10:00Z\"}",
+    "summary_aad": "errly/v1|AAECAwQFBgcICQoLDA0ODw|0193a5f0-7c2e-7b3a-9f1e-1c2d3e4f5a6b|summary",
+    "summary_envelope": "AaChoqOkpaanqKmqqxccVsCjnB9r36liA541fmJeHVxy2w9TOny4uyPdIkOD6x_AX6mk-GVntYYBUAt9vAYy3h3vWP0aHl3aYzCxSngzxd_V3LygIkOGllfobWJg6uwji3825hIewSpel5ctVv28y8tMJQPgbbCK2oZENK8vbxhZhITemcjWGey5LFEtV9bSr03ifX01SSV8Bqo6yKhbVGTKU7WDPRC8PuVuCAp7mDQ3HNs9FJmAOCV9KMQFNYsuLEnU1_MUJmu0LotukuujeCtksK5BbAlVgzrE57ok3rr7xUIQ-_RIHaJfnv3-3ha7TKSe-IvFTaz_H3M94yuhqihlL-yjbKeAqlwEj6P1U5RqwbjZbndiTjy1AxWoRC3laxWUmKM9iisSkMNpGzitOCUT-y6gZ3HYsWQ3oyfLOaUoe8orqQ-6NpIJFcBp5GRw8DdWjXTDIGOr",
+    "full_plaintext": "{\"v\":1,\"id\":\"0193a5f0-7c2e-7b3a-9f1e-1c2d3e4f5a6b\",\"kind\":\"error\",\"severity\":\"critical\",\"app\":\"client-portal\",\"environment\":\"production\",\"title\":\"QueryException\",\"message\":\"SQLSTATE[23000]: Integrity constraint violation\",\"location\":\"app/Services/Billing.php:142\",\"suppressed\":7,\"occurred_at\":\"2026-11-15T02:10:00Z\",\"exception\":\"Illuminate\\\\Database\\\\QueryException\",\"server\":\"web-1\",\"request\":{\"url\":\"https://portal.example.com/invoices\",\"method\":\"POST\"},\"user\":{\"id\":42,\"email\":\"[redacted]\"},\"trace\":\"#0 app/Services/Billing.php(142): ...\\n#1 {main}\"}",
+    "full_aad": "errly/v1|AAECAwQFBgcICQoLDA0ODw|0193a5f0-7c2e-7b3a-9f1e-1c2d3e4f5a6b|full",
+    "full_envelope": "AaChoqOkpaanqKmqqxccVsCjnB9r36liA541fmJeHVxy2w9TOny4uyPdIkOD6x_AX6mk-GVntYYBUAt9vAYy3h3vWP0aHl3aYzCxSngzxd_V3LygIkOGllfobWJg6uwji3825hIewSpel5ctVv28y8tMJQPgbbCK2oZENK8vbxhZhITemcjWGey5LFEtV9bSr03ifX01SSV8Bqo6yKhbVGTKU7WDPRC8PuVuCAp7mDQ3HNs9FJmAOCV9KMQFNYsuLEnU1_MUJmu0LotukuujeCtksK5BbAlVgzrE57ok3rr7xUIQ-_RIHaJfnv3-3ha7TKSe-IvFTaz_H3M94yuhqihlL-yjbKeAqlwEj6P1U5RqwbjZbndiTjy1AxWoRC3laxWUmKM9iisSkMNpGzitOCUT-y6gZ3HYsWQ3oyfLOaUoe8orqQ-6NsMBVPJrSalZZ5EklZq4Xi_dKqWOXge4dJvQhi7He4THg6Q1MeyJCg33uZ1FSB5S9wFgfQmDEXHgv6_4JRnPDRIFKBaDc7erXc4sGVse8GaNjfUsgUbh30y4EVq2j_VAf4VOEyZzg01vj12ANR71-f0ZopMbCTNVMz2mzz8hJseKBP3rDLY-ByRNEJ8JDf4L2eR77UXnkGwdBLaJrVJ2-ZOt59tz6VUyEgRnsctItJDv9DpmfZ_LQfgnyHfxIr_2dIig-blK3QGTM7A1NjOyy-MfrJY1QTb2CaKsZJ07gK2nLFKqxHCUh7180ewfJm5Pn976HAVjdOzn7ehiOjyo",
+    "fingerprint_input": "Illuminate\\Database\\QueryException|app/Services/Billing.php|142",
+    "fingerprint": "90af6fe80fd130305073fe2c5d0aea6010a5805d165720095686b67a81bd5174",
+    "state_fingerprint_input": "healthchecks|9f2c1e",
+    "state_fingerprint": "7e2508e4f4b082f2253acefc5836671e8d2618289908154d6bf3255b6bf3eeb6",
+    "pairing_link": "errly://pair?c=AAECAwQFBgcICQoLDA0ODw&k=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8&j=EBESExQVFhcYGRobHB0eHw&u=https%3A%2F%2Ferrlyservice.tallbottech.com"
+}

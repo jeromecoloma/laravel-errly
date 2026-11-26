@@ -2,7 +2,7 @@
 
 namespace Errly\LaravelErrly\Notifications;
 
-use Errly\LaravelErrly\Support\SensitiveDataRedactor;
+use Errly\LaravelErrly\ErrorReport;
 use Illuminate\Notifications\Messages\SlackAttachment;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
@@ -10,24 +10,37 @@ use Throwable;
 
 class SlackErrorNotification extends Notification
 {
-    public function __construct(
-        protected Throwable $exception,
-        protected array $context = []
-    ) {}
+    protected ErrorReport $report;
+
+    /**
+     * Takes a report built once for every channel. An exception and context
+     * are still accepted and turned into a report here.
+     */
+    public function __construct(ErrorReport|Throwable $report, array $context = [])
+    {
+        $this->report = $report instanceof ErrorReport
+            ? $report
+            : ErrorReport::fromException($report, $context);
+    }
 
     public function via($notifiable): array
     {
         return ['slack'];
     }
 
+    public function getReport(): ErrorReport
+    {
+        return $this->report;
+    }
+
     public function getException(): Throwable
     {
-        return $this->exception;
+        return $this->report->exception;
     }
 
     public function getContext(): array
     {
-        return $this->context;
+        return $this->report->context;
     }
 
     public function toSlack($notifiable): SlackMessage
@@ -77,50 +90,12 @@ class SlackErrorNotification extends Notification
 
     protected function getErrorFields(): array
     {
-        $sensitiveFields = config('errly.context.sensitive_fields', []);
-
-        return [
-            'Exception' => get_class($this->exception),
-            'Message' => SensitiveDataRedactor::redactString($this->getMessage(), $sensitiveFields),
-            'File' => $this->getFormattedFilePath(),
-            'Line' => $this->exception->getLine(),
-            'URL' => $this->context['request']['url'] ?? 'N/A',
-            'Method' => $this->context['request']['method'] ?? 'N/A',
-            'User' => $this->getUserInfo(),
-            'Environment' => $this->context['environment'] ?? 'Unknown',
-            'Server' => $this->context['server'] ?? 'Unknown',
-        ];
-    }
-
-    protected function getMessage(): string
-    {
-        $message = $this->exception->getMessage() ?: 'No message provided';
-
-        if (config('errly.context.redact_sql_bindings', true)) {
-            return SensitiveDataRedactor::redactDatabaseValues($this->exception, $message);
-        }
-
-        return $message;
+        return $this->report->fields;
     }
 
     protected function getSeverityLevel(): string
     {
-        $criticalExceptions = config('errly.filters.critical_exceptions', []);
-
-        foreach ($criticalExceptions as $critical) {
-            if ($this->exception instanceof $critical) {
-                return 'CRITICAL';
-            }
-        }
-
-        if (method_exists($this->exception, 'getStatusCode')) {
-            $statusCode = call_user_func([$this->exception, 'getStatusCode']);
-            if ($statusCode >= 500) {
-                return 'HIGH';
-            }
-        }
-
-        return 'MEDIUM';
+        return $this->report->severity;
     }
 
     protected function getColorBySeverity(): string
@@ -137,37 +112,11 @@ class SlackErrorNotification extends Notification
 
     protected function getFormattedFilePath(): string
     {
-        $file = $this->exception->getFile();
-
-        return str_replace(base_path(), '', $file);
-    }
-
-    protected function getUserInfo(): string
-    {
-        if (! isset($this->context['user'])) {
-            return 'Anonymous';
-        }
-
-        $user = $this->context['user'];
-        $info = 'ID: '.($user['id'] ?? 'Unknown');
-
-        if (isset($user['email'])) {
-            $info .= ' ('.$user['email'].')';
-        }
-
-        return $info;
+        return $this->report->fields['File'];
     }
 
     protected function getFormattedStackTrace(): ?string
     {
-        $trace = $this->exception->getTraceAsString();
-        $maxLength = config('errly.context.max_stack_trace_length', 2000);
-        $trace = SensitiveDataRedactor::redactString($trace, config('errly.context.sensitive_fields', [])) ?? $trace;
-
-        if (strlen($trace) > $maxLength) {
-            $trace = substr($trace, 0, $maxLength)."\n... (truncated)";
-        }
-
-        return $trace;
+        return $this->report->trace;
     }
 }

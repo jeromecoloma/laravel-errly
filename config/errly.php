@@ -27,6 +27,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Channels
+    |--------------------------------------------------------------------------
+    |
+    | Where error reports are sent. Each channel is tried on its own, so one
+    | failing does not stop the others. Add your own with
+    | `ChannelManager::extend()` from a service provider.
+    |
+    */
+    'channels' => array_filter(array_map('trim', explode(',', env('ERRLY_CHANNELS', 'slack')))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Slack Configuration
     |--------------------------------------------------------------------------
     */
@@ -35,6 +47,29 @@ return [
         'channel' => env('ERRLY_SLACK_CHANNEL', '#errors'),
         'username' => env('ERRLY_SLACK_USERNAME', 'Laravel Errly'),
         'emoji' => env('ERRLY_SLACK_EMOJI', '🚨'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Errly App
+    |--------------------------------------------------------------------------
+    |
+    | Encrypted alerts on iPhone and Mac. Add `app` to ERRLY_CHANNELS and run
+    | `php artisan errly:pair`, which fills in the channel, send token and key.
+    | The key stays in this app and on paired devices; the service only sees
+    | ciphertext.
+    |
+    | include_personal_data: when false, the user and request are left out of
+    | app reports.
+    |
+    */
+    'app' => [
+        'url' => env('ERRLY_APP_URL', 'https://errlyservice.tallbottech.com'),
+        'channel' => env('ERRLY_APP_CHANNEL'),
+        'send_token' => env('ERRLY_APP_SEND_TOKEN'),
+        'key' => env('ERRLY_APP_KEY'),
+        'include_personal_data' => filter_var(env('ERRLY_APP_INCLUDE_PERSONAL_DATA', true), FILTER_VALIDATE_BOOLEAN),
+        'timeout_seconds' => 5,
     ],
 
     /*
